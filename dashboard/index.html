@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discovery Agent Dashboard</title>
+<style>
+/* ------------------------------------------------------------------ */
+/* Reset & base                                                       */
+/* ------------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.45;
+  padding: 0 12px 24px 12px;
+}
+code, .mono { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace; }
+
+/* ------------------------------------------------------------------ */
+/* Colors                                                             */
+/* ------------------------------------------------------------------ */
+:root {
+  --green:  #00d26a;
+  --yellow: #ffc107;
+  --red:    #ff6b6b;
+  --blue:   #4fc3f7;
+  --purple: #b388ff;
+  --bg:     #1a1a2e;
+  --bg2:    #222240;
+  --bg3:    #2a2a4a;
+  --border: #3a3a5c;
+  --text:   #e0e0e0;
+  --dim:    #8888aa;
+}
+
+/* ------------------------------------------------------------------ */
+/* Utility                                                            */
+/* ------------------------------------------------------------------ */
+.waiting { color: var(--dim); font-style: italic; }
+.section { margin-top: 16px; }
+.section-title {
+  font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--dim); margin-bottom: 8px;
+  border-bottom: 1px solid var(--border); padding-bottom: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Pills                                                              */
+/* ------------------------------------------------------------------ */
+.pill {
+  display: inline-block; padding: 1px 8px; border-radius: 10px;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; white-space: nowrap;
+}
+.pill--green  { background: rgba(0,210,106,0.18); color: var(--green); border: 1px solid rgba(0,210,106,0.35); }
+.pill--yellow { background: rgba(255,193,7,0.15); color: var(--yellow); border: 1px solid rgba(255,193,7,0.30); }
+.pill--red    { background: rgba(255,107,107,0.15); color: var(--red); border: 1px solid rgba(255,107,107,0.30); }
+.pill--blue   { background: rgba(79,195,247,0.15); color: var(--blue); border: 1px solid rgba(79,195,247,0.30); }
+.pill--purple { background: rgba(179,136,255,0.15); color: var(--purple); border: 1px solid rgba(179,136,255,0.30); }
+.pill--dim    { background: rgba(136,136,170,0.12); color: var(--dim); border: 1px solid rgba(136,136,170,0.25); }
+
+/* ------------------------------------------------------------------ */
+/* 1. Header bar                                                      */
+/* ------------------------------------------------------------------ */
+#header {
+  background: var(--bg2); border-bottom: 2px solid var(--border);
+  padding: 12px 16px; display: flex; align-items: center; gap: 20px;
+  flex-wrap: wrap; margin: 0 -12px; /* flush edges */
+  padding-left: 24px; padding-right: 24px;
+}
+#header .task-id { font-size: 1.15rem; font-weight: 700; color: #fff; }
+#header .meta-item { font-size: 0.82rem; color: var(--dim); }
+#header .meta-item span { color: var(--text); font-weight: 600; }
+.budget-bar-wrap {
+  flex: 0 0 180px; height: 16px; background: var(--bg3);
+  border-radius: 8px; overflow: hidden; position: relative;
+  border: 1px solid var(--border);
+}
+.budget-bar-fill {
+  height: 100%; border-radius: 8px; transition: width 0.5s ease;
+}
+.budget-bar-label {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.68rem; font-weight: 700; color: #fff;
+  text-shadow: 0 0 3px rgba(0,0,0,0.7);
+}
+#direction-hint {
+  font-size: 0.78rem; color: var(--blue); font-style: italic;
+  flex-basis: 100%; margin-top: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. L1/L2/Meta — three column                                       */
+/* ------------------------------------------------------------------ */
+.uncertainty-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+}
+.unc-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px;
+}
+.unc-card h3 {
+  font-size: 0.78rem; font-weight: 700; margin-bottom: 6px;
+  color: var(--blue); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.unc-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.unc-label { font-size: 0.72rem; color: var(--dim); min-width: 80px; }
+.unc-rationale {
+  font-size: 0.72rem; color: var(--dim); margin-top: 4px; line-height: 1.4;
+  max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+}
+.unc-rationale.expanded { max-height: 600px; }
+.unc-toggle {
+  font-size: 0.68rem; color: var(--blue); cursor: pointer;
+  background: none; border: none; text-decoration: underline; margin-top: 2px;
+}
+/* Confidence bar (horizontal) */
+.conf-bar-wrap {
+  width: 80px; height: 10px; background: var(--bg3);
+  border-radius: 5px; overflow: hidden; display: inline-block;
+  vertical-align: middle; border: 1px solid var(--border);
+}
+.conf-bar-fill { height: 100%; border-radius: 5px; }
+
+/* ------------------------------------------------------------------ */
+/* 3. Timeline                                                        */
+/* ------------------------------------------------------------------ */
+#timeline-strip {
+  display: flex; gap: 8px; overflow-x: auto; padding: 8px 4px 12px 4px;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.tl-card {
+  flex: 0 0 auto; min-width: 160px; max-width: 220px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 10px; font-size: 0.75rem;
+}
+.tl-card.current {
+  border-color: var(--blue);
+  box-shadow: 0 0 8px rgba(79,195,247,0.35), 0 0 2px rgba(79,195,247,0.5);
+}
+.tl-cycle { font-weight: 700; color: var(--blue); margin-bottom: 2px; }
+.tl-action { color: var(--text); margin-bottom: 2px; }
+.tl-outcome { color: var(--dim); font-size: 0.70rem; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ------------------------------------------------------------------ */
+/* 4. Patterns + Investigations side by side                                */
+/* ------------------------------------------------------------------ */
+.pc-grid { display: grid; grid-template-columns: 40% 60%; gap: 10px; }
+
+/* Patterns table */
+.pattern-row {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+  border-bottom: 1px solid var(--border); font-size: 0.75rem;
+}
+.pattern-row:last-child { border-bottom: none; }
+.pattern-priority-bar {
+  width: 40px; height: 8px; background: var(--bg3); border-radius: 4px;
+  overflow: hidden; flex-shrink: 0;
+}
+.pattern-priority-fill { height: 100%; border-radius: 4px; }
+.pattern-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.pattern-id { color: var(--blue); font-weight: 700; min-width: 32px; flex-shrink: 0; }
+.pattern-desc { flex: 1; color: var(--text); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.pattern-investigation { flex-shrink: 0; }
+
+/* Investigations accordion */
+.investigation-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; margin-bottom: 6px; overflow: hidden;
+}
+.investigation-header {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  cursor: pointer; user-select: none; font-size: 0.78rem;
+}
+.investigation-header:hover { background: rgba(255,255,255,0.03); }
+.investigation-arrow {
+  font-size: 0.70rem; color: var(--dim); transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.investigation-card.expanded .investigation-arrow { transform: rotate(90deg); }
+.investigation-name { font-weight: 700; color: var(--text); flex: 1; }
+.investigation-body {
+  max-height: 0; overflow: hidden; transition: max-height 0.35s ease;
+}
+.investigation-card.expanded .investigation-body { max-height: 2000px; }
+.investigation-inner { padding: 0 10px 10px 10px; }
+.investigation-phenom { font-size: 0.72rem; color: var(--dim); margin-bottom: 6px; }
+.investigation-winning { font-size: 0.72rem; color: var(--green); margin-left: auto; white-space: nowrap; }
+
+/* Claims table inside investigation */
+.claim-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; margin-bottom: 8px; }
+.claim-table th {
+  text-align: left; font-weight: 700; color: var(--dim); padding: 3px 6px;
+  border-bottom: 1px solid var(--border); font-size: 0.68rem; text-transform: uppercase;
+}
+.claim-table td { padding: 4px 6px; border-bottom: 1px solid rgba(58,58,92,0.5); vertical-align: top; }
+.claim-role-icon { font-size: 0.80rem; }
+.claim-conf-bar {
+  width: 50px; height: 8px; background: var(--bg3); border-radius: 4px;
+  overflow: hidden; display: inline-block; vertical-align: middle;
+}
+.claim-conf-fill { height: 100%; border-radius: 4px; }
+.claim-text { max-width: 350px; }
+
+/* Custom tooltip */
+.tip { position: relative; cursor: default; }
+.tip:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0; top: 100%;
+  z-index: 999;
+  background: #222;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  max-width: 500px;
+  min-width: 200px;
+  width: max-content;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+
+/* Query dots */
+.query-dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.query-dot {
+  width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  border: 1px solid rgba(255,255,255,0.15);
+  position: relative; cursor: default;
+}
+.query-dot { position: relative; }
+.query-dot:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%; top: 100%;
+  transform: translateX(-50%);
+  z-index: 999;
+  background: #222;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.70rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  pointer-events: none;
+  margin-top: 4px;
+}
+
+/* Judge eval inside investigation */
+.judge-section { margin-top: 6px; font-size: 0.72rem; }
+.judge-section .judge-title {
+  font-weight: 700; color: var(--purple); text-transform: uppercase;
+  font-size: 0.68rem; margin-bottom: 3px;
+}
+.judge-row { display: flex; gap: 6px; align-items: center; margin-bottom: 2px; flex-wrap: wrap; }
+.red-flag { color: var(--red); font-size: 0.70rem; }
+
+/* ------------------------------------------------------------------ */
+/* 5. Decision log table                                              */
+/* ------------------------------------------------------------------ */
+.log-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.log-table th {
+  text-align: left; font-weight: 700; color: var(--dim); padding: 4px 8px;
+  border-bottom: 1px solid var(--border); font-size: 0.70rem; text-transform: uppercase;
+}
+.log-table td { padding: 5px 8px; border-bottom: 1px solid rgba(58,58,92,0.5); vertical-align: top; }
+.log-table tr.latest { background: rgba(79,195,247,0.08); }
+.log-table .td-action { color: var(--blue); font-weight: 600; white-space: nowrap; }
+.log-table .td-outcome { color: var(--dim); max-width: 400px; }
+.log-table .td-rationale { max-width: 350px; }
+
+/* ------------------------------------------------------------------ */
+/* Card wrapper                                                       */
+/* ------------------------------------------------------------------ */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px; overflow: hidden;
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbar                                                          */
+/* ------------------------------------------------------------------ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                         */
+/* ------------------------------------------------------------------ */
+@media (max-width: 900px) {
+  .uncertainty-grid { grid-template-columns: 1fr; }
+  .pc-grid { grid-template-columns: 1fr; }
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+</style>
+</head>
+<body>
+
+<!-- 1. Header -->
+<div id="header">
+  <span class="task-id" id="h-task-id">--</span>
+  <span class="meta-item">Phase: <span id="h-phase">--</span></span>
+  <span class="meta-item">Cycle: <span id="h-cycle">--</span></span>
+  <div class="budget-bar-wrap">
+    <div class="budget-bar-fill" id="h-budget-fill" style="width:0%"></div>
+    <div class="budget-bar-label" id="h-budget-label">--</div>
+  </div>
+  <div id="direction-hint"></div>
+</div>
+
+<!-- 2. L1 / L2 / Meta -->
+<div class="section">
+  <div class="section-title">Epistemic State</div>
+  <div class="uncertainty-grid">
+    <div class="unc-card" id="unc-l1"><h3>L1 &mdash; Exploration Space</h3><div class="waiting">Waiting...</div></div>
+    <div class="unc-card" id="unc-l2"><h3>L2 &mdash; Active Investigation</h3><div class="waiting">Waiting...</div></div>
+    <div class="unc-card" id="unc-meta"><h3>Meta Uncertainty</h3><div class="waiting">Waiting...</div></div>
+  </div>
+</div>
+
+<!-- 2b. L1/L2 Trajectory -->
+<div class="section">
+  <div class="section-title">Epistemic Trajectory</div>
+  <div class="card" id="trajectory-container" style="padding:12px;overflow-x:auto;">
+    <canvas id="trajectory-canvas" height="140" style="width:100%;cursor:crosshair;"></canvas>
+    <div id="trajectory-detail" style="display:none;margin-top:8px;padding:8px;background:#1a1a2e;border:1px solid #444;border-radius:6px;font-size:0.75rem;line-height:1.5;max-height:200px;overflow-y:auto;">
+    </div>
+  </div>
+</div>
+
+<!-- 3. Timeline -->
+<div class="section">
+  <div class="section-title">Exploration Timeline</div>
+  <div id="timeline-strip" class="card" style="padding:8px;"><span class="waiting">Waiting for decision log...</span></div>
+</div>
+
+<!-- 4. Patterns + Investigations -->
+<div class="section">
+  <div class="pc-grid">
+    <div>
+      <div class="section-title">Patterns</div>
+      <div class="card" id="patterns-container"><span class="waiting">Waiting...</span></div>
+    </div>
+    <div>
+      <div class="section-title">Investigations</div>
+      <div id="investigations-container"><span class="waiting">Waiting...</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Decision Log -->
+<div class="section">
+  <div class="section-title">Decision Log</div>
+  <div class="card" id="log-container"><span class="waiting">Waiting...</span></div>
+</div>
+
+<script>
+/* ================================================================== */
+/* State & config                                                     */
+/* ================================================================== */
+const POLL_INTERVAL = 3000;
+let prevStateJSON = "";
+let expandedInvestigations = new Set();
+
+/* ================================================================== */
+/* Helpers                                                            */
+/* ================================================================== */
+function esc(s) {
+  if (s == null) return "";
+  const d = document.createElement("div");
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+function statusColor(status) {
+  if (!status) return "dim";
+  const s = String(status).toLowerCase();
+  if (["supported", "resolved", "done", "success", "pass", "high"].includes(s)) return "green";
+  if (["weakened", "partially_resolved", "moderate", "medium", "narrowing", "warning"].includes(s)) return "yellow";
+  if (["refuted", "failed", "error", "exhausted", "inconclusive"].includes(s)) return "red";
+  if (["open", "pending", "unknown", "low"].includes(s)) return "blue";
+  return "dim";
+}
+
+function pillHTML(text, colorOverride) {
+  if (text == null) return '<span class="pill pill--dim">N/A</span>';
+  const color = colorOverride || statusColor(text);
+  return '<span class="pill pill--' + color + '">' + esc(text) + '</span>';
+}
+
+/* Coverage: high=green, low=red (inverted from default) */
+function coverageColor(v) {
+  if (!v) return "dim";
+  const s = String(v).toLowerCase();
+  if (s === "high") return "green";
+  if (s === "moderate") return "yellow";
+  if (s === "low") return "red";
+  return "dim";
+}
+
+/* Saturation: high=RED (diminishing returns), low=green */
+function saturationColor(v) {
+  if (!v) return "dim";
+  const s = String(v).toLowerCase();
+  if (s === "high") return "red";
+  if (s === "medium" || s === "moderate") return "yellow";
+  if (s === "low") return "green";
+  return "dim";
+}
+
+/* Frontier: open=green, narrowing=yellow, exhausted=red */
+function frontierColor(v) {
+  if (!v) return "dim";
+  const s = String(v).toLowerCase();
+  if (s === "open") return "green";
+  if (s === "narrowing") return "yellow";
+  if (s === "exhausted") return "red";
+  return "dim";
+}
+
+/* Mode badge */
+function modeColor(v) {
+  if (!v) return "dim";
+  const s = String(v).toLowerCase();
+  if (s === "branch") return "green";
+  if (s === "deepen") return "blue";
+  if (s === "switch") return "yellow";
+  if (s === "stop" || s === "finish" || s === "conclude" || s === "finalize") return "red";
+  return "dim";
+}
+
+function confBarHTML(conf, width) {
+  width = width || 50;
+  if (conf == null) return '<span class="pill pill--dim">N/A</span>';
+  const pct = Math.round(conf * 100);
+  let c = "var(--green)";
+  if (pct < 40) c = "var(--red)";
+  else if (pct < 70) c = "var(--yellow)";
+  return '<span class="conf-bar-wrap" style="width:' + width + 'px"><span class="conf-bar-fill" style="width:' + pct + '%;background:' + c + '"></span></span> <span class="mono" style="font-size:0.70rem;color:var(--dim)">' + pct + '%</span>';
+}
+
+/* Wrap text in a span with full-text CSS tooltip */
+function tipSpan(fullText, displayText, extraClass) {
+  if (!fullText) return "";
+  var classes = "tip" + (extraClass ? " " + extraClass : "");
+  var escaped = esc(String(fullText)).replace(/"/g, '&quot;');
+  return '<span class="' + classes + '" data-tip="' + escaped + '">' + esc(displayText || fullText) + '</span>';
+}
+function tipTrunc(fullText, maxLen, extraClass) {
+  if (!fullText) return "";
+  var s = String(fullText);
+  var display = s.length > maxLen ? s.substring(0, maxLen) + "…" : s;
+  return tipSpan(s, display, extraClass);
+}
+
+function truncate(s, n) {
+  if (!s) return "";
+  if (s.length <= n) return s;
+  return s.substring(0, n) + "...";
+}
+
+/* Action icon */
+function actionIcon(action) {
+  if (!action) return "";
+  const a = String(action).toLowerCase();
+  if (a.includes("eda") || a.includes("initial")) return "&#128269;"; /* magnifying glass */
+  if (a.includes("create")) return "&#10010;"; /* plus */
+  if (a.includes("deepen")) return "&#8595;"; /* down arrow */
+  if (a.includes("attach")) return "&#128279;"; /* link */
+  if (a.includes("switch")) return "&#8644;"; /* switch arrows */
+  if (a.includes("retire")) return "&#128465;"; /* trash */
+  if (a.includes("stop")) return "&#9632;"; /* stop */
+  return "&#9679;"; /* bullet */
+}
+
+/* Role icon */
+function roleIcon(role) {
+  if (!role) return "";
+  const r = String(role).toLowerCase();
+  if (r === "main") return "&#9733;"; /* star */
+  if (r.includes("alternative")) return "&#8646;"; /* bidirectional */
+  if (r.includes("artifact") || r.includes("check")) return "&#9888;"; /* warning */
+  if (r.includes("robustness")) return "&#128170;"; /* muscle */
+  return "&#9679;";
+}
+
+/* ================================================================== */
+/* Render: Header                                                     */
+/* ================================================================== */
+function renderHeader(state) {
+  const task = state.task;
+  const ep = state.epistemic;
+
+  document.getElementById("h-task-id").textContent = task ? task.task_id : "--";
+  document.getElementById("direction-hint").textContent = task && task.direction_hint
+    ? "Direction: " + task.direction_hint : "";
+
+  const prog = ep ? ep.exploration_progress : null;
+  var mode = ep && ep.level1 ? (ep.level1.recommended_mode || "").toLowerCase() : "";
+  var phase = prog && prog.phase ? prog.phase : "--";
+  if (mode === "stop" || mode === "finish" || mode === "conclude" || mode === "finalize") phase = "COMPLETED";
+  document.getElementById("h-phase").textContent = phase;
+  document.getElementById("h-cycle").textContent = prog && prog.cycle_id != null ? prog.cycle_id : "--";
+
+  /* Budget bar */
+  const used = prog ? prog.experiments_used : 0;
+  let total = prog && prog.budget_total ? prog.budget_total
+    : (task ? task.max_experiments : null);
+  /* Also try to derive total from used + remaining */
+  if (!total && prog && prog.budget_remaining != null) {
+    total = used + prog.budget_remaining;
+  }
+  const fill = document.getElementById("h-budget-fill");
+  const label = document.getElementById("h-budget-label");
+  if (total && total > 0) {
+    const pct = Math.min(100, Math.round((used / total) * 100));
+    fill.style.width = pct + "%";
+    label.textContent = used + " / " + total;
+    if (pct >= 80) fill.style.background = "var(--red)";
+    else if (pct >= 60) fill.style.background = "var(--yellow)";
+    else fill.style.background = "var(--green)";
+  } else {
+    fill.style.width = "0%";
+    label.textContent = used ? used + " / ?" : "--";
+  }
+}
+
+/* ================================================================== */
+/* Render: L1 / L2 / Meta                                            */
+/* ================================================================== */
+function renderUncertainty(state) {
+  const ep = state.epistemic;
+  const scores = state.scores;
+
+  /* --- L1 --- */
+  const l1El = document.getElementById("unc-l1");
+  if (!ep || !ep.level1) {
+    l1El.innerHTML = '<h3>L1 &mdash; Exploration Space</h3><span class="waiting">Waiting...</span>';
+  } else {
+    const l1 = ep.level1;
+    let html = '<h3>L1 &mdash; Exploration Space</h3>';
+    html += '<div class="unc-row"><span class="unc-label">Frontier</span>' + pillHTML(l1.frontier_status, frontierColor(l1.frontier_status)) + '</div>';
+    html += '<div class="unc-row"><span class="unc-label">Coverage</span>' + pillHTML(l1.coverage, coverageColor(l1.coverage)) + '</div>';
+    html += '<div class="unc-row"><span class="unc-label">Saturation</span>' + pillHTML(l1.saturation, saturationColor(l1.saturation)) + '</div>';
+    html += '<div class="unc-row"><span class="unc-label">Mode</span>' + pillHTML(l1.recommended_mode, modeColor(l1.recommended_mode)) + '</div>';
+    if (l1.rationale) {
+      const rid = "l1-rat";
+      html += '<button class="unc-toggle" onclick="toggleRationale(\'' + rid + '\')">rationale</button>';
+      html += '<div class="unc-rationale" id="' + rid + '">' + esc(l1.rationale) + '</div>';
+    }
+    l1El.innerHTML = html;
+  }
+
+  /* --- L2 --- */
+  const l2El = document.getElementById("unc-l2");
+  if (!ep || !ep.level2) {
+    l2El.innerHTML = '<h3>L2 &mdash; Active Investigation</h3><span class="waiting">Waiting...</span>';
+  } else {
+    const l2 = ep.level2;
+    let html = '<h3>L2 &mdash; Active Investigation</h3>';
+    /* Check if a new investigation is being created (L2 is stale) */
+    var dl = ep.decision_log || [];
+    var lastAction = dl.length > 0 ? String(dl[dl.length-1].action || "").toLowerCase() : "";
+    var l2Stale = l2.resolution_status === "resolved" && (lastAction.includes("create") || lastAction.includes("resum"));
+    if (l2.active_investigation_id) {
+      html += '<div class="unc-row"><span class="unc-label">Investigation</span><span class="mono" style="color:var(--blue);font-weight:700">' + esc(l2.active_investigation_id) + '</span>';
+      if (l2Stale) {
+        html += ' <span class="pill pill--blue" style="font-size:0.65rem;margin-left:6px;animation:pulse 1.5s infinite">next investigation in progress...</span>';
+      }
+      html += '</div>';
+    }
+    html += '<div class="unc-row"><span class="unc-label">Resolution</span>' + pillHTML(l2.resolution_status) + '</div>';
+    if (l2.resolution_confidence != null) {
+      html += '<div class="unc-row"><span class="unc-label">Confidence</span>' + confBarHTML(l2.resolution_confidence, 80) + '</div>';
+    }
+    if (l2.evidence_strength) {
+      html += '<div class="unc-row"><span class="unc-label">Evidence</span>' + pillHTML(l2.evidence_strength) + '</div>';
+    }
+    if (l2.red_flag_pressure) {
+      const rfColor = (function(v) {
+        if (!v) return "dim";
+        const s = String(v).toLowerCase();
+        if (s === "high") return "red";
+        if (s === "medium") return "yellow";
+        if (s === "low") return "green";
+        return "dim";
+      })(l2.red_flag_pressure);
+      html += '<div class="unc-row"><span class="unc-label">Red Flags</span>' + pillHTML(l2.red_flag_pressure, rfColor) + '</div>';
+    }
+    if (l2.next_best_resolution_step) {
+      html += '<div style="font-size:0.72rem;color:var(--dim);margin-top:4px"><b>Next:</b> ' + esc(truncate(l2.next_best_resolution_step, 200)) + '</div>';
+    }
+    if (l2.resolution_rationale) {
+      const rid = "l2-rat";
+      html += '<button class="unc-toggle" onclick="toggleRationale(\'' + rid + '\')">rationale</button>';
+      html += '<div class="unc-rationale" id="' + rid + '">' + esc(l2.resolution_rationale) + '</div>';
+    }
+    l2El.innerHTML = html;
+  }
+
+  /* --- Meta --- */
+  const metaEl = document.getElementById("unc-meta");
+  if (!ep || !ep.meta_uncertainty) {
+    metaEl.innerHTML = '<h3>Meta Uncertainty</h3><span class="waiting">Waiting...</span>';
+  } else {
+    const m = ep.meta_uncertainty;
+    let html = '<h3>Meta Uncertainty</h3>';
+    if (m.primary_type) {
+      const mc = (function(t) {
+        if (!t) return "dim";
+        const s = t.toLowerCase();
+        if (s === "none") return "green";
+        if (s === "frontier") return "blue";
+        if (s === "evidence") return "yellow";
+        if (s === "artifact") return "red";
+        return "purple";
+      })(m.primary_type);
+      html += '<div class="unc-row"><span class="unc-label">Type</span>' + pillHTML(m.primary_type, mc) + '</div>';
+    }
+    if (m.rationale) {
+      html += '<div style="font-size:0.72rem;color:var(--dim);margin-top:4px;line-height:1.4">' + esc(m.rationale) + '</div>';
+    }
+    if (m.best_information_gain_opportunity) {
+      html += '<div style="font-size:0.72rem;margin-top:6px"><b style="color:var(--purple)">Best info gain:</b> ' + esc(m.best_information_gain_opportunity) + '</div>';
+    }
+    metaEl.innerHTML = html;
+  }
+}
+
+function toggleRationale(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle("expanded");
+}
+
+/* ================================================================== */
+/* Render: L1/L2 Trajectory Chart (canvas)                            */
+/* ================================================================== */
+function renderTrajectory(state) {
+  var canvas = document.getElementById("trajectory-canvas");
+  if (!canvas) return;
+  var hist = state.l1l2_history;
+  if (!hist || hist.length === 0) {
+    var ctx0 = canvas.getContext("2d");
+    ctx0.clearRect(0, 0, canvas.width, canvas.height);
+    ctx0.fillStyle = "#888"; ctx0.font = "12px sans-serif";
+    ctx0.fillText("Waiting for data...", 10, 30);
+    return;
+  }
+
+  /* Map categorical values to numeric */
+  var valMap = {
+    "open": 3, "narrowing": 2, "exhausted": 1,
+    "low": 1, "moderate": 2, "high": 3,
+    "weak": 1, "strong": 3,
+    "branch": 3, "deepen": 2, "switch": 2, "stop": 1,
+    "resolved": 3, "partially_resolved": 2, "inconclusive": 1.5, "open": 1
+  };
+  function toNum(v) { return valMap[v] || 0; }
+
+  /* Resize canvas */
+  var rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = Math.max(rect.width - 24, 400);
+  canvas.height = 140;
+  var ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  var n = hist.length;
+  var padL = 80, padR = 20, padT = 20, padB = 30;
+  var w = canvas.width - padL - padR;
+  var h = canvas.height - padT - padB;
+
+  function x(i) { return padL + (n > 1 ? (i / (n - 1)) * w : w / 2); }
+  function y(v) { return padT + h - ((v - 0.5) / 3) * h; }
+
+  /* Grid lines */
+  ctx.strokeStyle = "#333"; ctx.lineWidth = 0.5;
+  [1, 2, 3].forEach(function(v) {
+    ctx.beginPath(); ctx.moveTo(padL, y(v)); ctx.lineTo(padL + w, y(v)); ctx.stroke();
+  });
+  ctx.fillStyle = "#666"; ctx.font = "10px monospace"; ctx.textAlign = "right";
+  ctx.fillText("low/open", padL - 6, y(1) + 3);
+  ctx.fillText("moderate", padL - 6, y(2) + 3);
+  ctx.fillText("high/resolved", padL - 6, y(3) + 3);
+
+  /* X labels */
+  ctx.textAlign = "center"; ctx.fillStyle = "#888";
+  hist.forEach(function(snap, i) {
+    var label = snap.cycle != null ? snap.cycle : "#" + (i + 1);
+    ctx.fillText(String(label), x(i), canvas.height - 5);
+  });
+
+  /* Draw lines */
+  var series = [
+    {key: "frontier", color: "#4fc3f7", label: "L1:frontier"},
+    {key: "coverage", color: "#00d26a", label: "L1:coverage"},
+    {key: "saturation", color: "#ffc107", label: "L1:saturation"},
+    {key: "resolution", color: "#ff6b6b", label: "L2:resolution"},
+  ];
+
+  series.forEach(function(s) {
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2;
+    ctx.beginPath();
+    var started = false;
+    hist.forEach(function(snap, i) {
+      var v = toNum(snap[s.key]);
+      if (v > 0) {
+        if (!started) { ctx.moveTo(x(i), y(v)); started = true; }
+        else ctx.lineTo(x(i), y(v));
+      }
+    });
+    ctx.stroke();
+    /* Dots */
+    hist.forEach(function(snap, i) {
+      var v = toNum(snap[s.key]);
+      if (v > 0) {
+        ctx.beginPath(); ctx.arc(x(i), y(v), 4, 0, Math.PI * 2);
+        ctx.fillStyle = s.color; ctx.fill();
+      }
+    });
+  });
+
+  /* Legend */
+  ctx.font = "10px monospace";
+  var lx = padL + 5;
+  series.forEach(function(s) {
+    ctx.fillStyle = s.color;
+    ctx.fillRect(lx, 5, 10, 8);
+    ctx.fillStyle = "#ccc";
+    ctx.textAlign = "left";
+    ctx.fillText(s.label, lx + 14, 12);
+    lx += 14 + ctx.measureText(s.label).width + 16;
+  });
+
+  /* Click handler — show rationale detail for nearest cycle */
+  canvas._trajHist = hist;
+  canvas._trajX = x;
+  canvas._trajN = n;
+  canvas._trajPadL = padL;
+  canvas._trajW = w;
+  canvas.onclick = function(evt) {
+    var rect = canvas.getBoundingClientRect();
+    var mx = evt.clientX - rect.left;
+    /* Find nearest cycle */
+    var bestIdx = 0, bestDist = 9999;
+    for (var ti = 0; ti < n; ti++) {
+      var dist = Math.abs(mx - x(ti));
+      if (dist < bestDist) { bestDist = dist; bestIdx = ti; }
+    }
+    var snap = hist[bestIdx];
+    var detail = document.getElementById("trajectory-detail");
+    var dhtml = '<div style="color:var(--blue);font-weight:700;margin-bottom:4px">Cycle: ' + esc(String(snap.cycle || bestIdx)) + ' | Investigation: ' + esc(snap.active_investigation || '—') + '</div>';
+    if (snap.l1_rationale) {
+      dhtml += '<div style="margin-bottom:4px"><b style="color:var(--green)">L1 Rationale:</b> ' + esc(snap.l1_rationale) + '</div>';
+    }
+    if (snap.l2_rationale) {
+      dhtml += '<div style="margin-bottom:4px"><b style="color:var(--red)">L2 Rationale:</b> ' + esc(snap.l2_rationale) + '</div>';
+    }
+    if (snap.meta_rationale) {
+      dhtml += '<div style="margin-bottom:4px"><b style="color:var(--purple)">Meta Uncertainty:</b> ' + esc(snap.meta_rationale) + '</div>';
+    }
+    if (snap.meta_opportunity) {
+      dhtml += '<div><b style="color:var(--yellow)">Best Info Gain:</b> ' + esc(snap.meta_opportunity) + '</div>';
+    }
+    detail.innerHTML = dhtml;
+    detail.style.display = 'block';
+  };
+}
+
+/* ================================================================== */
+/* Render: Timeline                                                   */
+/* ================================================================== */
+function renderTimeline(state) {
+  const strip = document.getElementById("timeline-strip");
+  const ep = state.epistemic;
+  if (!ep || !ep.decision_log || ep.decision_log.length === 0) {
+    strip.innerHTML = '<span class="waiting">Waiting for decision log...</span>';
+    return;
+  }
+  const log = ep.decision_log;
+  const lastIdx = log.length - 1;
+  let html = "";
+  log.forEach(function(entry, i) {
+    const isCurrent = (i === lastIdx);
+    html += '<div class="tl-card' + (isCurrent ? ' current' : '') + '">';
+    const label = entry.cycle_id != null ? "Cycle " + entry.cycle_id
+      : (entry.timestamp ? String(entry.timestamp).substring(11, 16) : "#" + (i + 1));
+    html += '<div class="tl-cycle">' + actionIcon(entry.action) + ' ' + esc(label) + '</div>';
+    html += '<div class="tl-action">' + esc(entry.action) + '</div>';
+    if (entry.target) {
+      html += '<div style="font-size:0.68rem;color:var(--purple)">' + esc(entry.target) + '</div>';
+    }
+    if (entry.outcome) {
+      html += '<div class="tl-outcome">' + tipTrunc(entry.outcome, 120) + '</div>';
+    }
+    html += '</div>';
+  });
+  strip.innerHTML = html;
+  /* Auto-scroll to latest */
+  strip.scrollLeft = strip.scrollWidth;
+}
+
+/* ================================================================== */
+/* Render: Patterns                                                   */
+/* ================================================================== */
+function renderPatterns(state) {
+  const container = document.getElementById("patterns-container");
+  const patterns = state.patterns;
+  if (!patterns || patterns.length === 0) {
+    container.innerHTML = '<span class="waiting">No patterns yet</span>';
+    return;
+  }
+  /* Sort by priority desc */
+  const sorted = patterns.slice().sort(function(a, b) { return (b.priority || 0) - (a.priority || 0); });
+  let html = "";
+  sorted.forEach(function(p) {
+    const prio = p.priority != null ? p.priority : 0.5;
+    const prioPct = Math.round(prio * 100);
+    let prioColor = "var(--green)";
+    if (prio < 0.4) prioColor = "var(--dim)";
+    else if (prio < 0.7) prioColor = "var(--yellow)";
+
+    const statusDotColor = (function(s) {
+      if (!s) return "var(--dim)";
+      const v = String(s).toLowerCase();
+      if (v === "explained") return "var(--green)";
+      if (v === "unexplained") return "var(--yellow)";
+      if (v === "refuted") return "var(--red)";
+      return "var(--dim)";
+    })(p.status);
+
+    html += '<div class="pattern-row" title="' + esc(p.description) + '">';
+    html += '<div class="pattern-priority-bar"><div class="pattern-priority-fill" style="width:' + prioPct + '%;background:' + prioColor + '"></div></div>';
+    html += '<div class="pattern-status-dot" style="background:' + statusDotColor + '" title="' + esc(p.status) + '"></div>';
+    html += '<span class="pattern-id mono">' + esc(p.id) + '</span>';
+    html += '<span class="pattern-desc">' + esc(truncate(p.description, 80)) + '</span>';
+    if (p.investigation_id) {
+      html += '<span class="pattern-investigation">' + pillHTML(p.investigation_id, "purple") + '</span>';
+    }
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+/* ================================================================== */
+/* Render: Investigations                                                   */
+/* ================================================================== */
+function renderInvestigations(state) {
+  const container = document.getElementById("investigations-container");
+  const investigationsData = state.investigations;
+  const scores = state.scores;
+  if (!investigationsData || !investigationsData.investigations || investigationsData.investigations.length === 0) {
+    container.innerHTML = '<span class="waiting">No investigations yet</span>';
+    return;
+  }
+
+  /* Build map: investigation_id -> claim_evaluations */
+  const evalMap = {};
+  if (scores && scores.claim_evaluations) {
+    scores.claim_evaluations.forEach(function(ev) {
+      evalMap[ev.claim_id] = ev;
+    });
+  }
+  /* Build map: investigation_id -> adjudication from claims summary */
+  const claimsSummaryMap = {};
+  if (state.claims && state.claims.investigation_summary) {
+    const cs = state.claims.investigation_summary;
+    if (Array.isArray(cs)) {
+      cs.forEach(function(item) { claimsSummaryMap[item.investigation_id] = item; });
+    } else if (typeof cs === "object") {
+      /* Agent sometimes writes {I001: {...}, I002: {...}} instead of array */
+      Object.keys(cs).forEach(function(k) { claimsSummaryMap[k] = cs[k]; });
+    }
+  }
+
+  let html = "";
+  investigationsData.investigations.forEach(function(c) {
+    const isExpanded = expandedInvestigations.has(c.id);
+    const summary = claimsSummaryMap[c.id];
+    const claimCounts = summary && summary.claim_outcome_counts ? summary.claim_outcome_counts : null;
+    const winningClaimId = summary ? summary.winning_claim_id : (scores && scores.adjudication_result ? scores.adjudication_result.winning_claim_id : null);
+
+    html += '<div class="investigation-card' + (isExpanded ? ' expanded' : '') + '" data-investigation-id="' + esc(c.id) + '">';
+
+    /* Header */
+    html += '<div class="investigation-header" onclick="toggleInvestigation(\'' + esc(c.id) + '\')">';
+    html += '<span class="investigation-arrow">&#9654;</span>';
+    html += pillHTML(c.status);
+    html += ' <span class="investigation-name">' + esc(c.id);
+    if (c.name) html += ' &mdash; ' + esc(c.name);
+    html += '</span>';
+    if (claimCounts) {
+      html += '<span style="font-size:0.68rem;color:var(--dim)">';
+      if (claimCounts.supported) html += '<span style="color:var(--green)">' + claimCounts.supported + 'S</span> ';
+      if (claimCounts.weakened) html += '<span style="color:var(--yellow)">' + claimCounts.weakened + 'W</span> ';
+      if (claimCounts.refuted) html += '<span style="color:var(--red)">' + claimCounts.refuted + 'R</span> ';
+      html += '</span>';
+    } else {
+      html += '<span style="font-size:0.68rem;color:var(--dim)">' + c.claims.length + ' claims</span>';
+    }
+    if (winningClaimId) {
+      html += '<span class="investigation-winning">&#9733; ' + esc(winningClaimId) + '</span>';
+    }
+    html += '</div>';
+
+    /* Body */
+    html += '<div class="investigation-body"><div class="investigation-inner">';
+    if (c.phenomenon) {
+      html += '<div class="investigation-phenom">' + esc(c.phenomenon) + '</div>';
+    }
+
+    /* Claims table */
+    if (c.claims.length > 0) {
+      html += '<table class="claim-table"><thead><tr><th></th><th>ID</th><th>Status</th><th>Conf.</th><th>Claim</th></tr></thead><tbody>';
+      c.claims.forEach(function(cl) {
+        const ev = evalMap[cl.claim_id];
+        const conf = ev ? ev.confidence : null;
+        /* Try to get confidence from claims.json if not in scores */
+        let confVal = conf;
+        if (confVal == null && state.claims && state.claims.claims) {
+          const fullClaim = state.claims.claims.find(function(fc) { return fc.claim_id === cl.claim_id; });
+          if (fullClaim) confVal = fullClaim.confidence;
+        }
+        const isWinner = cl.claim_id === winningClaimId;
+        html += '<tr' + (isWinner ? ' style="background:rgba(0,210,106,0.06)"' : '') + '>';
+        html += '<td class="claim-role-icon" title="' + esc(cl.role) + '">' + roleIcon(cl.role) + '</td>';
+        html += '<td class="mono" style="font-size:0.68rem;white-space:nowrap">' + esc(cl.claim_id) + '</td>';
+        html += '<td>' + pillHTML(cl.status) + '</td>';
+        html += '<td>';
+        if (confVal != null) {
+          const cpct = Math.round(confVal * 100);
+          let cc = "var(--green)";
+          if (cpct < 40) cc = "var(--red)";
+          else if (cpct < 70) cc = "var(--yellow)";
+          html += '<span class="claim-conf-bar"><span class="claim-conf-fill" style="width:' + cpct + '%;background:' + cc + '"></span></span> <span class="mono" style="font-size:0.66rem;color:var(--dim)">' + cpct + '%</span>';
+        } else {
+          html += '<span style="color:var(--dim)">--</span>';
+        }
+        html += '</td>';
+        html += '<td class="claim-text">' + tipTrunc(cl.text, 140) + '</td>';
+        html += '</tr>';
+        /* Red flags from eval */
+        if (ev && ev.red_flags && ev.red_flags.length > 0) {
+          html += '<tr><td></td><td colspan="4">';
+          ev.red_flags.forEach(function(rf) {
+            html += '<span class="red-flag">&#9888; ' + esc(rf) + '</span> ';
+          });
+          html += '</td></tr>';
+        }
+      });
+      html += '</tbody></table>';
+    }
+
+    /* Query bundle dots */
+    if (c.query_bundle && c.query_bundle.length > 0) {
+      html += '<div style="font-size:0.68rem;color:var(--dim);margin-top:4px">Queries:</div>';
+      html += '<div class="query-dots">';
+      c.query_bundle.forEach(function(q) {
+        let dotColor = "var(--dim)";
+        const qs = q.status ? String(q.status).toLowerCase() : "";
+        if (qs === "done" || qs === "success") dotColor = "var(--green)";
+        else if (qs === "failed" || qs === "error") dotColor = "var(--red)";
+        else if (qs === "running") dotColor = "var(--blue)";
+        else if (qs === "pending") dotColor = "var(--yellow)";
+        html += '<span class="query-dot" style="background:' + dotColor + '" data-tip="' + esc(q.query_id) + ': ' + esc(q.status) + '"></span>';
+      });
+      html += '</div>';
+    }
+
+    /* Judge evaluation section */
+    if (scores && scores.investigation_id === c.id && scores.adjudication_result) {
+      const adj = scores.adjudication_result;
+      html += '<div class="judge-section">';
+      html += '<div class="judge-title">Adjudication</div>';
+      html += '<div class="judge-row">' + pillHTML(adj.status) + ' ';
+      if (adj.confidence != null) html += confBarHTML(adj.confidence, 60);
+      html += '</div>';
+      if (adj.summary) {
+        html += '<div style="font-size:0.70rem;color:var(--dim);margin-top:3px;line-height:1.35">' + tipTrunc(adj.summary, 250) + '</div>';
+      }
+      html += '</div>';
+    }
+
+    html += '</div></div>'; /* investigation-inner, investigation-body */
+    html += '</div>'; /* investigation-card */
+  });
+  container.innerHTML = html;
+}
+
+function toggleInvestigation(id) {
+  if (expandedInvestigations.has(id)) {
+    expandedInvestigations.delete(id);
+  } else {
+    expandedInvestigations.add(id);
+  }
+  /* Re-render just the toggle state without full re-fetch */
+  const card = document.querySelector('.investigation-card[data-investigation-id="' + id + '"]');
+  if (card) {
+    card.classList.toggle("expanded");
+  }
+}
+
+/* ================================================================== */
+/* Render: Decision Log table                                         */
+/* ================================================================== */
+function renderDecisionLog(state) {
+  const container = document.getElementById("log-container");
+  const ep = state.epistemic;
+  if (!ep || !ep.decision_log || ep.decision_log.length === 0) {
+    container.innerHTML = '<span class="waiting">No decisions yet</span>';
+    return;
+  }
+  const log = ep.decision_log.slice().reverse(); /* reverse chronological */
+  let html = '<table class="log-table"><thead><tr><th>Cycle</th><th>Action</th><th>Target</th><th>Rationale</th><th>Outcome</th></tr></thead><tbody>';
+  log.forEach(function(entry, i) {
+    const isLatest = (i === 0);
+    html += '<tr class="' + (isLatest ? 'latest' : '') + '">';
+    const label = entry.cycle_id != null ? entry.cycle_id
+      : (entry.timestamp ? String(entry.timestamp).substring(11, 16) : "--");
+    html += '<td class="mono">' + esc(label) + '</td>';
+    html += '<td class="td-action">' + esc(entry.action) + '</td>';
+    html += '<td>' + (entry.target ? esc(entry.target) : '<span style="color:var(--dim)">--</span>') + '</td>';
+    html += '<td class="td-rationale">' + tipTrunc(entry.rationale, 120) + '</td>';
+    html += '<td class="td-outcome">' + tipTrunc(entry.outcome, 150) + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+/* ================================================================== */
+/* Main render orchestration                                          */
+/* ================================================================== */
+function renderAll(state) {
+  var fns = [
+    ["Header", renderHeader],
+    ["Uncertainty", renderUncertainty],
+    ["Trajectory", renderTrajectory],
+    ["Timeline", renderTimeline],
+    ["Patterns", renderPatterns],
+    ["Investigations", renderInvestigations],
+    ["DecisionLog", renderDecisionLog]
+  ];
+  fns.forEach(function(pair) {
+    try { pair[1](state); }
+    catch(e) { console.error("Render " + pair[0] + " failed:", e); }
+  });
+}
+
+/* ================================================================== */
+/* Polling                                                            */
+/* ================================================================== */
+async function poll() {
+  try {
+    const resp = await fetch("/api/state");
+    if (!resp.ok) return;
+    const state = await resp.json();
+    const json = JSON.stringify(state);
+    if (json === prevStateJSON) return; /* no changes */
+    prevStateJSON = json;
+    renderAll(state);
+  } catch (e) {
+    /* silently retry next cycle */
+  }
+}
+
+/* Initial load + interval */
+poll();
+setInterval(poll, POLL_INTERVAL);
+</script>
+</body>
+</html>

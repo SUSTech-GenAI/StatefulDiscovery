@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "claims.schema.json",
+  "title": "Discovery Claims (Open-Ended)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "claims", "top_supported_claim_id", "investigation_summary"],
+  "properties": {
+    "task_id": { "type": "string", "minLength": 1 },
+    "claims": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/claim" }
+    },
+    "top_supported_claim_id": { "type": "string", "minLength": 1 },
+    "investigation_summary": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/investigationSummary" }
+    }
+  },
+  "$defs": {
+    "claimDimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["variables", "relation", "context", "direction"],
+      "properties": {
+        "variables": { "type": "array", "items": { "type": "string" } },
+        "relation": { "type": "string" },
+        "context": { "type": "string" },
+        "direction": { "type": "string" }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "claim_id",
+        "investigation_id",
+        "investigation_name",
+        "role",
+        "text",
+        "status",
+        "confidence",
+        "dimensions",
+        "evidence_refs"
+      ],
+      "properties": {
+        "claim_id": { "type": "string", "minLength": 1 },
+        "investigation_id": { "type": "string", "minLength": 1 },
+        "investigation_name": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": ["main", "alternative_explanation", "artifact_check", "robustness"]
+        },
+        "text": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["supported", "weakened", "refuted", "inconclusive"]
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "dimensions": { "$ref": "#/$defs/claimDimensions" },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "supporting_stats": { "type": "object" }
+      }
+    },
+    "investigationSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["investigation_id", "name", "phenomenon", "status", "winning_claim_id", "claim_outcome_counts"],
+      "properties": {
+        "investigation_id": { "type": "string" },
+        "name": { "type": "string" },
+        "phenomenon": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["active", "paused", "resolved", "retired", "saturated"]
+        },
+        "winning_claim_id": { "type": ["string", "null"] },
+        "claim_outcome_counts": {
+          "type": "object",
+          "properties": {
+            "supported": { "type": "integer" },
+            "weakened": { "type": "integer" },
+            "refuted": { "type": "integer" },
+            "inconclusive": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}

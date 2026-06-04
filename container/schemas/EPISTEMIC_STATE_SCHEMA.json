@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Epistemic State (Open-Ended)",
+  "description": "Agent cognitive state — what I know, what I don't know, how certain I am. L1 assesses exploration space, L2 assesses active investigation resolution, meta_uncertainty identifies the primary source of uncertainty.",
+  "type": "object",
+  "required": ["data_context", "exploration_progress", "active_focus", "level1", "level2", "meta_uncertainty", "decision_log"],
+  "properties": {
+    "data_context": {
+      "type": "object",
+      "required": ["variables", "observation_counts", "key_characteristics", "initial_observations"],
+      "properties": {
+        "variables": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "observation_counts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "key_characteristics": { "type": "string" },
+        "initial_observations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "exploration_progress": {
+      "type": "object",
+      "required": ["phase", "cycle_id", "experiments_used", "budget_total", "budget_remaining"],
+      "properties": {
+        "phase": { "type": "string", "enum": ["base", "exploring", "finalizing"] },
+        "cycle_id": { "type": "integer", "minimum": 0 },
+        "patterns_total": { "type": "integer" },
+        "patterns_unexplained": { "type": "integer" },
+        "patterns_explained": { "type": "integer" },
+        "investigations_total": { "type": "integer" },
+        "investigations_active": { "type": "integer" },
+        "investigations_resolved": { "type": "integer" },
+        "investigations_retired": { "type": "integer" },
+        "experiments_used": { "type": "integer" },
+        "budget_total": { "type": "integer" },
+        "budget_remaining": { "type": "integer" }
+      }
+    },
+    "active_focus": {
+      "description": "Quick-glance summary for orientation — especially useful after context compaction",
+      "type": "object",
+      "required": ["investigation_id", "frontier_summary", "current_risks"],
+      "properties": {
+        "investigation_id": { "type": ["string", "null"] },
+        "frontier_summary": { "type": "string" },
+        "current_risks": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "level1": {
+      "description": "Exploration space assessment — frontier, coverage, saturation",
+      "type": "object",
+      "required": ["frontier_status", "saturation_assessment", "saturation_rationale", "recommended_mode"],
+      "properties": {
+        "frontier_status": { "type": "string", "enum": ["open", "narrowing", "exhausted"] },
+        "saturation_assessment": { "type": "string", "enum": ["low", "medium", "high"] },
+        "saturation_rationale": { "type": "string" },
+        "recommended_mode": { "type": "string", "enum": ["branch", "deepen", "switch", "stop"] }
+      }
+    },
+    "level2": {
+      "description": "Active investigation resolution assessment — evidence quality, red flags, next step",
+      "type": "object",
+      "required": ["active_investigation_id", "resolution_status", "resolution_confidence", "resolution_rationale", "evidence_strength", "red_flag_pressure", "next_best_resolution_step"],
+      "properties": {
+        "active_investigation_id": { "type": ["string", "null"] },
+        "resolution_status": { "type": "string", "enum": ["open", "partially_resolved", "resolved", "inconclusive"] },
+        "resolution_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "resolution_rationale": { "type": "string" },
+        "evidence_strength": { "type": "string", "enum": ["weak", "moderate", "strong"] },
+        "red_flag_pressure": { "type": "string", "enum": ["low", "medium", "high"] },
+        "next_best_resolution_step": { "type": "string" }
+      }
+    },
+    "meta_uncertainty": {
+      "description": "Metacognitive assessment — why am I uncertain, what would reduce it most",
+      "type": "object",
+      "required": ["primary_uncertainty_type", "primary_uncertainty_rationale", "best_information_gain_opportunity"],
+      "properties": {
+        "primary_uncertainty_type": {
+          "type": "string",
+          "enum": ["frontier", "evidence", "artifact", "boundary_condition", "generalization"]
+        },
+        "primary_uncertainty_rationale": { "type": "string" },
+        "best_information_gain_opportunity": { "type": "string" }
+      }
+    },
+    "decision_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["cycle_id", "action", "target", "rationale"],
+        "properties": {
+          "cycle_id": { "type": "integer" },
+          "action": { "type": "string" },
+          "target": {
+            "type": "object",
+            "properties": {
+              "pattern_id": { "type": ["string", "null"] },
+              "investigation_id": { "type": ["string", "null"] }
+            }
+          },
+          "rationale": { "type": "string" },
+          "outcome": { "type": "string" }
+        }
+      }
+    }
+  }
+}

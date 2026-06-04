@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "task_packet.schema.json",
+  "title": "Discovery Task Packet (Open-Ended)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "task_id",
+    "dataset_paths",
+    "column_metadata",
+    "budget"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "direction_hint": {
+      "type": "string",
+      "description": "Optional directional hint for exploration. Does not limit scope."
+    },
+    "dataset_paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "column_metadata": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/columnMetadata"
+      }
+    },
+    "budget": {
+      "$ref": "#/$defs/budget"
+    }
+  },
+  "$defs": {
+    "columnMetadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "type": { "type": "string" }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_experiments", "max_runtime_minutes"],
+      "properties": {
+        "max_experiments": { "type": "integer", "minimum": 1 },
+        "max_runtime_minutes": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

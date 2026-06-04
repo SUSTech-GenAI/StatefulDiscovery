@@ -1,0 +1,44 @@
+FROM futurehouse/bixbench:aviary-notebook-env
+
+# Install Node.js for Claude Code CLI
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Claude Code CLI
+ARG CLAUDE_CODE_VERSION=2.1.76
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+
+# Install bioinformatics tools
+ARG http_proxy
+ARG https_proxy
+RUN conda config --set proxy_servers.http "${http_proxy:-}" 2>/dev/null; \
+    conda config --set proxy_servers.https "${https_proxy:-}" 2>/dev/null; \
+    conda install -y -c bioconda -c conda-forge bwa samtools bcftools pysam && \
+    conda create -n busco_env -y -c bioconda -c conda-forge busco && \
+    echo '#!/bin/bash' > /opt/conda/bin/busco && \
+    echo 'exec /opt/conda/bin/conda run -n busco_env busco "$@"' >> /opt/conda/bin/busco && \
+    chmod +x /opt/conda/bin/busco && \
+    conda clean -afy
+
+# Create non-root user (default 1000, override with --build-arg)
+ARG HOST_UID=1000
+RUN useradd -m -s /bin/bash -u ${HOST_UID} agent
+
+WORKDIR /workspace
+
+# Container CLAUDE.md -> workspace root (auto-loaded by Claude Code)
+COPY container/claude/CLAUDE.md /workspace/CLAUDE.md
+
+# Claude Code skills -> agent's global ~/.claude/skills/
+COPY --chown=agent:agent claude_skills /home/agent/.claude/skills
+
+# Run directory will be mounted at /workspace/run
+RUN mkdir -p /workspace/run && chown -R agent:agent /workspace
+
+USER agent
+
+CMD ["bash"]

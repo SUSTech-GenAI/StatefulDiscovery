@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "experiment_record.schema.json",
+  "title": "Discovery Experiment Record (Open-Ended)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "experiment_id",
+    "task_id",
+    "phase",
+    "question",
+    "status",
+    "summary",
+    "code_path",
+    "artifacts"
+  ],
+  "properties": {
+    "experiment_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 },
+    "phase": {
+      "type": "string",
+      "enum": ["base", "exploration"]
+    },
+    "investigation_id": { "type": ["string", "null"] },
+    "query_id": { "type": ["string", "null"] },
+    "question": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["success", "failed", "inconclusive"]
+    },
+    "summary": { "type": "string", "minLength": 1 },
+    "code_path": { "type": "string", "minLength": 1 },
+    "command": { "type": "string" },
+    "stdout_summary": { "type": "string" },
+    "stderr_summary": { "type": "string" },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "claim_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
