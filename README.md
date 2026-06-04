@@ -1,5 +1,8 @@
 # StatefulDiscovery
 
+## Evidence-Calibrated Claim Formation in Open-Ended Scientific Discovery
+![Agent overall diagram](imgs/figure2.png)
+
 ## 安装
 
 ```bash
@@ -7,7 +10,7 @@ git clone https://github.com/Nazzyyj/StatefulDiscovery.git
 cd ./StatefulDiscovery
 ```
 
-## API 配置
+## 配置 Backbone 模型 API-KEY
 
 复制配置模板：
 
@@ -25,147 +28,56 @@ ANTHROPIC_MODEL=
 
 `config.env` 不会提交到 Git；运行脚本会读取这个文件并将配置传入容器。
 
-## 数据准备
+## 数据准备+处理
+StatefulDisocvery在3个benchmark共40个数据集上进行评估。因为我们的目的是open-ended的发现，需要将benchmark的所有测试问题剔除，让agent接收数据集本身进行开放式探索。我们在 [DiscoveryBench](https://huggingface.co/datasets/allenai/discoverybench), [BLADE](https://github.com/behavioral-data/BLADE)以及[BixBench](https://huggingface.co/datasets/phylobio/BixBench-Verified-50) 进行预处理，以屏蔽特定的查询和问题。
 
-### DiscoveryBench
-
-#### 1. 下载原始数据
-
-下载 DiscoveryBench 的 real test split，并将其中内容直接放到 `./discoverybench/` 下：
-
+建议先下载处理DiscoveryBench进行测试。
 ```bash
-hf download allenai/discoverybench \
-  --repo-type dataset \
-  --include 'discoverybench/real/test/**' \
-  --local-dir . && \
-mv ./discoverybench/real/test/* ./discoverybench/ && \
-rmdir ./discoverybench/real/test ./discoverybench/real && \
+# DiscoveryBench
+hf download allenai/discoverybench --repo-type dataset --include 'discoverybench/real/test/**' --local-dir .
+mv ./discoverybench/real/test/* ./discoverybench/
+rmdir ./discoverybench/real/test ./discoverybench/real
 rm -rf ./.cache
-```
-
-#### 2. 转换为 open-ended 任务
-
-将 `./discoverybench/<任务名>/` 转换为本项目运行使用的
-`./datasets/discoverybench/<任务名>/` 结构：
-
-```bash
+# 转换为open-ended任务，并写入 ./datasest/discoverybench/<task>/
 python3 scripts/prepare_discoverybench_tasks.py
-```
-
-转换完成后，可以删除原始 DiscoveryBench 数据目录，只保留转换后的任务目录：
-
-```bash
 rm -rf ./discoverybench
+```
+``` bash
+# BLADE
+git clone --depth 1 --filter=blob:none --sparse https://github.com/behavioral-data/BLADE.git ./blade_repo
+git -C ./blade_repo sparse-checkout set blade_bench/datasets
+mkdir -p ./blade
+cp -R ./blade_repo/blade_bench/datasets/* ./blade/
+rm -rf ./blade_repo
+# 转换为open-ended任务，并写入 ./datasest/blade/<task>/
+python3 scripts/prepare_blade_tasks.py
+rm -rf ./blade
+```
+``` bash
+# BixBench-v50
+mkdir -p ./bixbench/verified50 ./bixbench/full
+hf download phylobio/BixBench-Verified-50 --repo-type dataset --local-dir ./bixbench/verified50
+hf download futurehouse/BixBench BixBench.jsonl --repo-type dataset --local-dir ./bixbench/full
+# 转换为open-ended任务，并写入 ./datasest/bixbench/<task>/
+python3 scripts/prepare_bixbench_tasks.py
+rm -rf ./bixbench
 ```
 
 转换后的每个任务目录包含数据文件和 `task_packet.json`：
 
 ```text
-datasets/discoverybench/<任务名>/
+datasets/xxx/<任务名>/
   数据文件...
   task_packet.json
 ```
 
 `task_packet.json` 只包含 open-ended 运行需要的信息，包括 `task_id`、
 `dataset_paths`、带列说明的 `column_metadata` 和 `budget`。其中 `task_id`
-直接使用任务目录名。脚本不会把 DiscoveryBench 原始 metadata 中的固定
-queries、hypotheses 或答案写入任务目录。
-
-### BLADE
-
-#### 1. 下载原始数据
-
-BLADE 数据在 GitHub 仓库的子目录中。使用 sparse checkout 只下载
-`blade_bench/datasets`，并将其中内容直接放到 `./blade/` 下：
-
-```bash
-git clone --depth 1 --filter=blob:none --sparse \
-  https://github.com/behavioral-data/BLADE.git ./blade_repo && \
-git -C ./blade_repo sparse-checkout set blade_bench/datasets && \
-mkdir -p ./blade && \
-cp -R ./blade_repo/blade_bench/datasets/* ./blade/ && \
-rm -rf ./blade_repo
-```
-
-#### 2. 转换为 open-ended 任务
-
-将 `./blade/<任务名>/` 转换为本项目运行使用的
-`./datasets/blade/<任务名>/` 结构：
-
-```bash
-python3 scripts/prepare_blade_tasks.py
-```
-
-转换完成后，可以删除原始 BLADE 数据目录，只保留转换后的任务目录：
-
-```bash
-rm -rf ./blade
-```
-
-转换后的每个任务目录包含 `data.csv` 和 `task_packet.json`：
-
-```text
-datasets/blade/<任务名>/
-  data.csv
-  task_packet.json
-```
-
-`task_packet.json` 只包含 open-ended 运行需要的信息，包括 `task_id`、
-`dataset_paths`、带列说明的 `column_metadata` 和 `budget`。脚本不会把
-BLADE 原始 `research_questions`、`annotations.csv` 或 `mcq_dataset.json` 写入任务目录。
-
-### BixBench
-
-#### 1. 下载原始数据
-
-本项目使用 `phylobio/BixBench-Verified-50` 作为 BixBench 数据来源，并额外下载
-`futurehouse/BixBench` 的 `BixBench.jsonl` 来校验 capsule UUID 和 `bix-*` 编号映射：
-
-```bash
-mkdir -p ./bixbench/verified50 ./bixbench/full && \
-hf download phylobio/BixBench-Verified-50 \
-  --repo-type dataset \
-  --local-dir ./bixbench/verified50 && \
-hf download futurehouse/BixBench BixBench.jsonl \
-  --repo-type dataset \
-  --local-dir ./bixbench/full
-```
-
-#### 2. 转换为 open-ended 任务
-
-将 Verified-50 capsule 转换为本项目运行使用的
-`./datasets/bixbench/<bix编号>/` 结构：
-
-```bash
-python3 scripts/prepare_bixbench_tasks.py
-```
-
-转换完成后，可以删除原始 BixBench 下载目录，只保留转换后的任务目录：
-
-```bash
-rm -rf ./bixbench
-```
-
-转换脚本会按 `capsule_uuid` 对 Verified-50 中的重复 question 去重，并按 `bix-*`
-编号生成任务目录。如果同一个 `bix-*` 编号对应多个不同 capsule，会合并为同一个任务；
-多 capsule 任务的数据会放在 `capsule_<uuid>/` 子目录下，避免文件名冲突。
-
-转换后的每个任务目录包含 capsule data 文件和 `task_packet.json`：
-
-```text
-datasets/bixbench/<bix编号>/
-  数据文件...
-  task_packet.json
-```
-
-`task_packet.json` 只包含 open-ended 运行需要的信息，包括 `task_id`、
-`dataset_paths`、`column_metadata` 和 `budget`。脚本不会把 BixBench 原始
-`question`、`ideal`、`answer` 或 `result` 写入任务目录。对于 RNA、蛋白质序列等
-没有表格列的 capsule，`column_metadata` 会是空数组。
+直接使用任务目录名。脚本不会把原始Benchmarks等含有的queries、hypotheses 或答案写入任务目录。
 
 ## 运行任务（Claude Code）
-
-Claude Code 后端相关文件放在独立路径下：
+我们提供不同coding agent的支持，首先是Claude Code CLI，版本固定为 `2.1.76`。
+相关文件放在独立路径下：
 
 ```text
 dockerfiles/Dockerfile.claude
@@ -177,22 +89,11 @@ scripts/run_claude_task.sh
 运行单个任务：
 
 ```bash
-./scripts/run_claude_task.sh datasets/discoverybench/nls_incarceration
+./scripts/run_claude_task.sh datasets/discoverybench/nls_incarceration discovery_output/discoverybench/nls_incarceration
 ```
 
-也可以显式指定输出任务目录：
+本项目也提供实时跟踪的看板，如果需要启动实时 dashboard，可以添加 `--dashboard 8050`。
 
-```bash
-./scripts/run_claude_task.sh \
-  datasets/discoverybench/nls_incarceration \
-  discovery_output/discoverybench/nls_incarceration
-```
-
-如果需要启动实时 dashboard：
-
-```bash
-./scripts/run_claude_task.sh datasets/discoverybench/nls_incarceration --dashboard 8050
-```
 
 脚本会自动构建 Docker 镜像 `stateful-discovery-claude`，并将任务数据复制到运行目录：
 
@@ -210,12 +111,7 @@ Claude Code 的 `stream-json` 流式日志单独写入：
 discovery_log/discoverybench/<任务名>/run_YYYYMMDD_HHMMSS/stream.jsonl
 ```
 
-该日志目录会挂载到容器内 `/workspace/log`，不会出现在 `/workspace/run` 的任务
-数据目录中。`discovery_output/` 和 `discovery_log/` 都不会提交到 Git。
-
-`dockerfiles/Dockerfile.claude` 中的 Claude Code CLI 版本固定为 `2.1.76`。
-
-## 运行任务（OpenCode 实验版）
+## 运行任务（OpenCode）
 
 OpenCode 后端相关文件放在独立路径下：
 
@@ -249,5 +145,9 @@ opencode_agents/investigation-decomposition.md
 opencode_agents/experiment-runner.md
 ```
 
-其他可复用方法说明保留为 OpenCode skills。该路径用于比较效果，默认主流程仍是
-Claude Code 版本。
+其他可复用方法说明保留为 OpenCode skills。
+
+## Experimental Rounds
+以Bixbench中的bix-52为例，我们将其流程可视化为下图所示。
+
+![case study](imgs/case_.png)
