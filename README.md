@@ -1,26 +1,30 @@
 # StatefulDiscovery
+[![ArXiv: coming soon](https://img.shields.io/badge/ArXiv-coming_soon-b31b1b.svg)](imgs/paper.pdf) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+English | [中文](README_zh.md)
 
 ## Evidence-Calibrated Claim Formation in Open-Ended Scientific Discovery
- StatefulDiscovery 是一个面向开放式科学发现的智能体框架。不同于只执行预定义分析问题的流程，开放式发现要求智能体在多轮探索中持续判断哪些现象值得进一步研究，并避免提出超出当前证据支持范围的结论。为了解决这一问题，StatefulDiscovery 将“发现状态”显式外化，用于协调前沿现象选择、证据获取和论断纠偏，使探索过程和可声明结论保持同步。
- 
+
+StatefulDiscovery is a framework for open-ended scientific discovery agents. Unlike workflows that execute analyses for predefined questions, open-ended discovery requires an agent to decide, across multiple rounds of exploration, which emerging phenomena deserve further investigation while avoiding claims that exceed the evidential scope of the supporting analyses. To address this problem, StatefulDiscovery externalizes discovery state and uses it to coordinate frontier selection, evidence acquisition, and claim calibration, keeping exploration and claim formation aligned.
+
 ![Agent overall diagram](imgs/figure2.png)
 
-## 安装
+## Installation
 
 ```bash
 git clone https://github.com/Nazzyyj/StatefulDiscovery-Dev.git
 cd ./StatefulDiscovery-Dev
 ```
 
-## 配置 Backbone 模型 API-KEY
+## Configure Backbone Model API Keys
 
-复制配置模板：
+Copy the configuration template:
 
 ```bash
 cp config.env.example config.env
 ```
 
-然后在 `config.env` 中填写运行容器内 agent 使用的模型配置：
+Then fill in the model configuration used by the agent inside the container:
 
 ```bash
 ANTHROPIC_API_KEY=
@@ -28,58 +32,62 @@ ANTHROPIC_BASE_URL=
 ANTHROPIC_MODEL=
 ```
 
-`config.env` 不会提交到 Git；运行脚本会读取这个文件并将配置传入容器。
+`config.env` is not committed to Git. The run scripts read this file and pass the configuration into the container.
 
-## 数据准备+处理
-StatefulDiscovery在3个benchmark共40个数据集上进行评估。因为我们的目的是open-ended的发现，需要将benchmark的所有测试问题剔除，让agent接收数据集本身进行开放式探索。我们在 [DiscoveryBench](https://huggingface.co/datasets/allenai/discoverybench), [BLADE](https://github.com/behavioral-data/BLADE)以及[BixBench](https://huggingface.co/datasets/phylobio/BixBench-Verified-50) 进行预处理，以屏蔽特定的查询和问题。
+## Data Preparation and Processing
 
-建议先下载处理DiscoveryBench进行测试。
+StatefulDiscovery is evaluated on 40 datasets across 3 benchmarks. Because our goal is open-ended discovery, benchmark-specific test questions must be removed so that the agent receives only the dataset itself and performs open-ended exploration. We preprocess [DiscoveryBench](https://huggingface.co/datasets/allenai/discoverybench), [BLADE](https://github.com/behavioral-data/BLADE), and [BixBench](https://huggingface.co/datasets/phylobio/BixBench-Verified-50) to hide task-specific queries and answers.
+
+We recommend starting with DiscoveryBench for a quick test.
+
 ```bash
 # DiscoveryBench
 hf download allenai/discoverybench --repo-type dataset --include 'discoverybench/real/test/**' --local-dir .
 mv ./discoverybench/real/test/* ./discoverybench/
 rmdir ./discoverybench/real/test ./discoverybench/real
 rm -rf ./.cache
-# 转换为open-ended任务，并写入 ./datasets/discoverybench/<task>/
+# Convert to open-ended tasks under ./datasets/discoverybench/<task>/
 python3 scripts/prepare_discoverybench_tasks.py
 rm -rf ./discoverybench
 ```
-``` bash
+
+```bash
 # BLADE
 git clone --depth 1 --filter=blob:none --sparse https://github.com/behavioral-data/BLADE.git ./blade_repo
 git -C ./blade_repo sparse-checkout set blade_bench/datasets
 mkdir -p ./blade
 cp -R ./blade_repo/blade_bench/datasets/* ./blade/
 rm -rf ./blade_repo
-# 转换为open-ended任务，并写入 ./datasets/blade/<task>/
+# Convert to open-ended tasks under ./datasets/blade/<task>/
 python3 scripts/prepare_blade_tasks.py
 rm -rf ./blade
 ```
-``` bash
+
+```bash
 # BixBench-v50
 mkdir -p ./bixbench/verified50 ./bixbench/full
 hf download phylobio/BixBench-Verified-50 --repo-type dataset --local-dir ./bixbench/verified50
 hf download futurehouse/BixBench BixBench.jsonl --repo-type dataset --local-dir ./bixbench/full
-# 转换为open-ended任务，并写入 ./datasets/bixbench/<task>/
+# Convert to open-ended tasks under ./datasets/bixbench/<task>/
 python3 scripts/prepare_bixbench_tasks.py
 rm -rf ./bixbench
 ```
 
-转换后的每个任务目录包含数据文件和 `task_packet.json`：
+Each converted task directory contains data files and `task_packet.json`:
 
 ```text
-datasets/xxx/<任务名>/
-  数据文件...
+datasets/xxx/<task_name>/
+  data files...
   task_packet.json
 ```
 
-`task_packet.json` 只包含 open-ended 运行需要的信息，包括 `task_id`、
-`dataset_paths`、带列说明的 `column_metadata` 和 `budget`。其中 `task_id`
-直接使用任务目录名。脚本不会把原始Benchmarks等含有的queries、hypotheses 或答案写入任务目录。
+`task_packet.json` contains only the information needed for open-ended runs, including `task_id`, `dataset_paths`, `column_metadata` with column descriptions, and `budget`. The `task_id` directly uses the task directory name. The scripts do not write original benchmark queries, hypotheses, or answers into task directories.
 
-## 运行任务（Claude Code）
-我们提供不同coding agent的支持，首先是Claude Code CLI，版本固定为 `2.1.76`。
-相关文件放在独立路径下：
+## Running Tasks with Claude Code
+
+We support multiple coding-agent backends. The primary backend is Claude Code CLI, pinned to version `2.1.76`.
+
+The related files are isolated under:
 
 ```text
 dockerfiles/Dockerfile.claude
@@ -88,39 +96,37 @@ claude_skills/
 scripts/run_claude_task.sh
 ```
 
-运行单个任务：
+Run a single task:
 
 ```bash
 ./scripts/run_claude_task.sh datasets/discoverybench/nls_incarceration discovery_output/discoverybench/nls_incarceration
 ```
 
-本项目也提供实时跟踪的看板，如果需要启动实时 dashboard:
+This project also provides a live dashboard for tracking agent progress:
+
 ```bash
 pip install fastapi uvicorn
 
 ./scripts/run_claude_task.sh datasets/discoverybench/nls_incarceration discovery_output/discoverybench/nls_incarceration --dashboard 8050
 ```
 
-
-脚本会自动构建 Docker 镜像 `stateful-discovery-claude`，并将任务数据复制到运行目录：
-
-```text
-discovery_output/discoverybench/<任务名>/run_YYYYMMDD_HHMMSS/
-```
-
-容器运行时会将该运行目录挂载到 `/workspace/run`。任务数据和 agent 产出的
-`patterns.json`、`experiments.jsonl`、`claims.json`、`report.md` 等结果都会写在
-这个目录下。
-
-Claude Code 的 `stream-json` 流式日志单独写入：
+The script automatically builds the Docker image `stateful-discovery-claude` and copies task data into a run directory:
 
 ```text
-discovery_log/discoverybench/<任务名>/run_YYYYMMDD_HHMMSS/stream.jsonl
+discovery_output/discoverybench/<task_name>/run_YYYYMMDD_HHMMSS/
 ```
 
-## 运行任务（OpenCode）
+At runtime, the container mounts this run directory at `/workspace/run`. Task data and agent outputs such as `patterns.json`, `experiments.jsonl`, `claims.json`, and `report.md` are written into this directory.
 
-OpenCode 后端相关文件放在独立路径下：
+Claude Code `stream-json` logs are written separately:
+
+```text
+discovery_log/discoverybench/<task_name>/run_YYYYMMDD_HHMMSS/stream.jsonl
+```
+
+## Running Tasks with OpenCode
+
+OpenCode backend files are isolated under:
 
 ```text
 dockerfiles/Dockerfile.opencode
@@ -130,31 +136,31 @@ opencode_agents/
 scripts/run_opencode_task.sh
 ```
 
-运行方式与 Claude Code 版本一致：
+The run interface is the same as the Claude Code version:
 
 ```bash
 ./scripts/run_opencode_task.sh datasets/discoverybench/nls_incarceration
 ```
 
-OpenCode 版本会自动构建 Docker 镜像 `stateful-discovery-opencode`。它复用
-`config.env` 中的 `ANTHROPIC_API_KEY`、`ANTHROPIC_BASE_URL` 和
-`ANTHROPIC_MODEL`，并在运行时生成 OpenCode 配置。运行输出仍写入
-`discovery_output/`，JSON 事件日志仍写入 `discovery_log/`。
+The OpenCode version automatically builds the Docker image `stateful-discovery-opencode`. It reuses `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, and `ANTHROPIC_MODEL` from `config.env`, and generates the OpenCode configuration at runtime. Run outputs are written to `discovery_output/`, and JSON event logs are written to `discovery_log/`.
 
-`dockerfiles/Dockerfile.opencode` 中的 OpenCode CLI 版本固定为 `1.2.26`，
-与当前 Claude Code `2.1.76` 的发布时间接近。
+`dockerfiles/Dockerfile.opencode` pins the OpenCode CLI version to `1.2.26`, which is close in release time to the current Claude Code `2.1.76` version.
 
-OpenCode 版本将 Claude Code 中 `context: fork` 的两个阶段改为 OpenCode
-subagent：
+The OpenCode version maps the two Claude Code `context: fork` stages to OpenCode subagents:
 
 ```text
 opencode_agents/investigation-decomposition.md
 opencode_agents/experiment-runner.md
 ```
 
-其他可复用方法说明保留为 OpenCode skills。
+Other reusable method instructions are kept as OpenCode skills.
 
 ## Experimental Rounds
-以Bixbench中的bix-52为例，我们将其流程可视化为下图所示。
+
+The following figure visualizes an example run on `bix-52` from BixBench.
 
 ![case study](imgs/case_.png)
+
+## License
+
+This repository is released under the MIT License. Datasets used by the benchmark preparation scripts are subject to their original licenses.
