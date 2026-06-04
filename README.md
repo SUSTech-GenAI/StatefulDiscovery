@@ -1,13 +1,15 @@
 # StatefulDiscovery
 
 ## Evidence-Calibrated Claim Formation in Open-Ended Scientific Discovery
+ StatefulDiscovery 是一个面向开放式科学发现的智能体框架。不同于只执行预定义分析问题的流程，开放式发现要求智能体在多轮探索中持续判断哪些现象值得进一步研究，并避免提出超出当前证据支持范围的结论。为了解决这一问题，StatefulDiscovery 将“发现状态”显式外化，用于协调前沿现象选择、证据获取和论断纠偏，使探索过程和可声明结论保持同步。
+ 
 ![Agent overall diagram](imgs/figure2.png)
 
 ## 安装
 
 ```bash
-git clone https://github.com/Nazzyyj/StatefulDiscovery.git
-cd ./StatefulDiscovery
+git clone https://github.com/Nazzyyj/StatefulDiscovery-Dev.git
+cd ./StatefulDiscovery-Dev
 ```
 
 ## 配置 Backbone 模型 API-KEY
@@ -29,7 +31,7 @@ ANTHROPIC_MODEL=
 `config.env` 不会提交到 Git；运行脚本会读取这个文件并将配置传入容器。
 
 ## 数据准备+处理
-StatefulDisocvery在3个benchmark共40个数据集上进行评估。因为我们的目的是open-ended的发现，需要将benchmark的所有测试问题剔除，让agent接收数据集本身进行开放式探索。我们在 [DiscoveryBench](https://huggingface.co/datasets/allenai/discoverybench), [BLADE](https://github.com/behavioral-data/BLADE)以及[BixBench](https://huggingface.co/datasets/phylobio/BixBench-Verified-50) 进行预处理，以屏蔽特定的查询和问题。
+StatefulDiscovery在3个benchmark共40个数据集上进行评估。因为我们的目的是open-ended的发现，需要将benchmark的所有测试问题剔除，让agent接收数据集本身进行开放式探索。我们在 [DiscoveryBench](https://huggingface.co/datasets/allenai/discoverybench), [BLADE](https://github.com/behavioral-data/BLADE)以及[BixBench](https://huggingface.co/datasets/phylobio/BixBench-Verified-50) 进行预处理，以屏蔽特定的查询和问题。
 
 建议先下载处理DiscoveryBench进行测试。
 ```bash
@@ -38,7 +40,7 @@ hf download allenai/discoverybench --repo-type dataset --include 'discoverybench
 mv ./discoverybench/real/test/* ./discoverybench/
 rmdir ./discoverybench/real/test ./discoverybench/real
 rm -rf ./.cache
-# 转换为open-ended任务，并写入 ./datasest/discoverybench/<task>/
+# 转换为open-ended任务，并写入 ./datasets/discoverybench/<task>/
 python3 scripts/prepare_discoverybench_tasks.py
 rm -rf ./discoverybench
 ```
@@ -49,7 +51,7 @@ git -C ./blade_repo sparse-checkout set blade_bench/datasets
 mkdir -p ./blade
 cp -R ./blade_repo/blade_bench/datasets/* ./blade/
 rm -rf ./blade_repo
-# 转换为open-ended任务，并写入 ./datasest/blade/<task>/
+# 转换为open-ended任务，并写入 ./datasets/blade/<task>/
 python3 scripts/prepare_blade_tasks.py
 rm -rf ./blade
 ```
@@ -58,7 +60,7 @@ rm -rf ./blade
 mkdir -p ./bixbench/verified50 ./bixbench/full
 hf download phylobio/BixBench-Verified-50 --repo-type dataset --local-dir ./bixbench/verified50
 hf download futurehouse/BixBench BixBench.jsonl --repo-type dataset --local-dir ./bixbench/full
-# 转换为open-ended任务，并写入 ./datasest/bixbench/<task>/
+# 转换为open-ended任务，并写入 ./datasets/bixbench/<task>/
 python3 scripts/prepare_bixbench_tasks.py
 rm -rf ./bixbench
 ```
@@ -92,7 +94,12 @@ scripts/run_claude_task.sh
 ./scripts/run_claude_task.sh datasets/discoverybench/nls_incarceration discovery_output/discoverybench/nls_incarceration
 ```
 
-本项目也提供实时跟踪的看板，如果需要启动实时 dashboard，可以添加 `--dashboard 8050`。
+本项目也提供实时跟踪的看板，如果需要启动实时 dashboard:
+```bash
+pip install fastapi uvicorn
+
+./scripts/run_claude_task.sh datasets/discoverybench/nls_incarceration discovery_output/discoverybench/nls_incarceration --dashboard 8050
+```
 
 
 脚本会自动构建 Docker 镜像 `stateful-discovery-claude`，并将任务数据复制到运行目录：
