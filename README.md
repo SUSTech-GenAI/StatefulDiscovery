@@ -12,8 +12,8 @@ StatefulDiscovery is a framework for open-ended scientific discovery agents. Unl
 ## Installation
 
 ```bash
-git clone https://github.com/Nazzyyj/StatefulDiscovery-Dev.git
-cd ./StatefulDiscovery-Dev
+git clone https://github.com/SUSTech-GenAI/StatefulDiscovery.git
+cd ./StatefulDiscovery
 ```
 
 ### Requirements
