@@ -52,6 +52,7 @@ StatefulDiscovery在3个benchmark共40个数据集上进行评估。因为我们
 
 建议先下载处理DiscoveryBench进行测试。
 ```bash
+# export HF_ENDPOINT=https://hf-mirror.com
 # DiscoveryBench
 hf download allenai/discoverybench --repo-type dataset --include 'discoverybench/real/test/**' --local-dir .
 mv ./discoverybench/real/test/* ./discoverybench/
