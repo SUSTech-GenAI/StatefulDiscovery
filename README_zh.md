@@ -15,6 +15,20 @@ git clone https://github.com/Nazzyyj/StatefulDiscovery-Dev.git
 cd ./StatefulDiscovery-Dev
 ```
 
+### 依赖
+
+主机侧依赖：
+- Docker
+- Git
+- Python 3.10+
+- GitHub CLI (`gh`)，用于 clone private development repository
+
+安装数据下载、任务转换和可选 dashboard 所需的 Python 工具：
+
+```bash
+pip install -r requirements.txt
+```
+
 ## 配置 Backbone 模型 API-KEY
 
 复制配置模板：
@@ -99,8 +113,6 @@ scripts/run_claude_task.sh
 
 本项目也提供实时跟踪的看板，如果需要启动实时 dashboard:
 ```bash
-pip install fastapi uvicorn
-
 ./scripts/run_claude_task.sh datasets/discoverybench/nls_incarceration discovery_output/discoverybench/nls_incarceration --dashboard 8050
 ```
 

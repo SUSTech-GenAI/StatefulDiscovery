@@ -16,6 +16,20 @@ git clone https://github.com/Nazzyyj/StatefulDiscovery-Dev.git
 cd ./StatefulDiscovery-Dev
 ```
 
+### Requirements
+
+Host-side requirements:
+- Docker
+- Git
+- Python 3.10+
+- GitHub CLI (`gh`) for cloning the private development repository
+
+Install Python utilities used for dataset download, task preparation, and the optional dashboard:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Configure Backbone Model API Keys
 
 Copy the configuration template:
@@ -105,8 +119,6 @@ Run a single task:
 This project also provides a live dashboard for tracking agent progress:
 
 ```bash
-pip install fastapi uvicorn
-
 ./scripts/run_claude_task.sh datasets/discoverybench/nls_incarceration discovery_output/discoverybench/nls_incarceration --dashboard 8050
 ```
 
