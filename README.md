@@ -24,6 +24,12 @@ Host-side requirements:
 - Python 3.10+
 - GitHub CLI (`gh`) for cloning the private development repository
 
+Supported host platforms:
+- macOS on Apple Silicon (`arm64`), using Docker Desktop
+- Ubuntu Linux on AMD64 (`x86_64`) or ARM64 (`aarch64`), using Docker Engine
+
+Other hosts capable of running Linux containers may also work, but are not currently verified.
+
 Install Python utilities used for dataset download, task preparation, and the optional dashboard:
 
 ```bash
@@ -105,12 +111,13 @@ datasets/xxx/<task_name>/
 ## Base Image Setup
 
 StatefulDiscovery evaluates agents inside an isolated Docker environment for
-fairness and reproducibility. The runtime images are built on
+fairness and reproducibility. Tasks run in Linux containers whether the host is
+macOS or Ubuntu. The runtime images are built on
 `futurehouse/bixbench:aviary-notebook-env`. The upstream image currently
 supports only `linux/arm64`, so this repository also provides an AMD64-compatible
 rebuild.
 
-### Linux ARM64
+### ARM64 Hosts (macOS Apple Silicon / Ubuntu ARM64)
 
 On an ARM64 host, pull the upstream image:
 
@@ -123,7 +130,7 @@ docker pull futurehouse/bixbench:aviary-notebook-env
 #   futurehouse/bixbench:aviary-notebook-env
 ```
 
-### Linux AMD64
+### AMD64 Hosts (Ubuntu AMD64)
 
 On an AMD64 host, build the compatible base image locally:
 
@@ -162,6 +169,7 @@ This project also provides a live dashboard for tracking agent progress:
 ```
 
 The script automatically builds the Docker image `stateful-discovery-claude` and copies task data into a run directory:
+The initial image build usually takes 5–10 minutes, and the Conda dependency-solving step may temporarily produce no new logs. Later runs normally reuse the Docker build cache.
 
 ```text
 discovery_output/discoverybench/<task_name>/run_YYYYMMDD_HHMMSS/

@@ -23,6 +23,12 @@ cd ./StatefulDiscovery-Dev
 - Python 3.10+
 - GitHub CLI (`gh`)，用于 clone private development repository
 
+支持的宿主平台：
+- macOS Apple Silicon (`arm64`)，使用 Docker Desktop
+- Ubuntu Linux AMD64 (`x86_64`) 或 ARM64 (`aarch64`)，使用 Docker Engine
+
+其他可运行 Linux 容器的宿主平台也可能兼容，但目前尚未验证。
+
 安装数据下载、任务转换和可选 dashboard 所需的 Python 工具：
 
 ```bash
@@ -95,17 +101,20 @@ datasets/xxx/<任务名>/
 直接使用任务目录名。脚本不会把原始Benchmarks等含有的queries、hypotheses 或答案写入任务目录。
 
 ## 基础镜像配置
-由于我们是在沙盒（容器）里进行评估。为保证公平及可复现，需先拉取必要的镜像。我们基于futuehouse/bixbench的镜像来构建。但由于该开源镜像仅支持linux/arm64，我们对其进行改造以支持linux/amd64。
+由于我们是在沙盒（容器）里进行评估。为保证公平及可复现，需先拉取必要的镜像。无论宿主系统是 macOS 还是 Ubuntu，任务都会在 Linux 容器中运行。我们基于 futurehouse/bixbench 的镜像来构建，但由于该开源镜像仅支持 `linux/arm64`，我们对其进行改造以支持 `linux/amd64`。
 
-### linux/arm64环境
-如果宿主机是arm64配置
+### ARM64 宿主机（macOS Apple Silicon / Ubuntu ARM64）
+如果宿主机是 ARM64 配置：
+
 ```bash
 docker pull futurehouse/bixbench:aviary-notebook-env
 # 如果需要镜像站的话，推荐 https://1ms.run/
 # docker pull docker.1ms.run/futurehouse/bixbench:aviary-notebook-env
 ```
-### linux/amd64环境
-如果宿主机是amd64配置
+
+### AMD64 宿主机（Ubuntu AMD64）
+如果宿主机是 AMD64 配置：
+
 ```bash
 # docker pull xxx
 # 也可以从 dockerfile 直接构建
@@ -136,6 +145,7 @@ scripts/run_claude_task.sh
 
 
 脚本会自动构建 Docker 镜像 `stateful-discovery-claude`，并将任务数据复制到运行目录：
+首次构建镜像通常需要 5–10 分钟，其中 Conda 依赖求解阶段可能暂时没有新日志；后续运行通常会复用 Docker 构建缓存。
 
 ```text
 discovery_output/discoverybench/<任务名>/run_YYYYMMDD_HHMMSS/
