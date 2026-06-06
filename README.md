@@ -136,9 +136,6 @@ docker build \
   .
 ```
 
-See [dockerfiles/README.md](dockerfiles/README.md) for details and a verification
-command.
-
 ## Running Tasks with Claude Code
 
 We support multiple coding-agent backends. The primary backend is Claude Code CLI, pinned to version `2.1.76`.
