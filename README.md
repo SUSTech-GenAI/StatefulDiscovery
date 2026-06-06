@@ -52,7 +52,12 @@ ANTHROPIC_MODEL=
 
 StatefulDiscovery is evaluated on 40 datasets across 3 benchmarks. Because our goal is open-ended discovery, benchmark-specific test questions must be removed so that the agent receives only the dataset itself and performs open-ended exploration. We preprocess [DiscoveryBench](https://huggingface.co/datasets/allenai/discoverybench), [BLADE](https://github.com/behavioral-data/BLADE), and [BixBench](https://huggingface.co/datasets/phylobio/BixBench-Verified-50) to hide task-specific queries and answers.
 
-We recommend starting with DiscoveryBench for a quick test.
+We recommend starting with DiscoveryBench for a quick test. If access to
+Hugging Face is slow or unavailable, you may need to configure a mirror first:
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+```
 
 ```bash
 # DiscoveryBench
@@ -97,6 +102,43 @@ datasets/xxx/<task_name>/
 
 `task_packet.json` contains only the information needed for open-ended runs, including `task_id`, `dataset_paths`, `column_metadata` with column descriptions, and `budget`. The `task_id` directly uses the task directory name. The scripts do not write original benchmark queries, hypotheses, or answers into task directories.
 
+## Base Image Setup
+
+StatefulDiscovery evaluates agents inside an isolated Docker environment for
+fairness and reproducibility. The runtime images are built on
+`futurehouse/bixbench:aviary-notebook-env`. The upstream image currently
+supports only `linux/arm64`, so this repository also provides an AMD64-compatible
+rebuild.
+
+### Linux ARM64
+
+On an ARM64 host, pull the upstream image:
+
+```bash
+docker pull futurehouse/bixbench:aviary-notebook-env
+
+# If a registry mirror is required:
+# docker pull docker.1ms.run/futurehouse/bixbench:aviary-notebook-env
+# docker tag docker.1ms.run/futurehouse/bixbench:aviary-notebook-env \
+#   futurehouse/bixbench:aviary-notebook-env
+```
+
+### Linux AMD64
+
+On an AMD64 host, build the compatible base image locally:
+
+```bash
+docker build \
+  --platform linux/amd64 \
+  --network host \
+  -t futurehouse/bixbench:aviary-notebook-env \
+  -f dockerfiles/Dockerfile.bixbench-base.amd64 \
+  .
+```
+
+See [dockerfiles/README.md](dockerfiles/README.md) for details and a verification
+command.
+
 ## Running Tasks with Claude Code
 
 We support multiple coding-agent backends. The primary backend is Claude Code CLI, pinned to version `2.1.76`.
@@ -104,7 +146,6 @@ We support multiple coding-agent backends. The primary backend is Claude Code CL
 The related files are isolated under:
 
 ```text
-dockerfiles/Dockerfile.claude
 container/claude/CLAUDE.md
 claude_skills/
 scripts/run_claude_task.sh
@@ -141,7 +182,6 @@ discovery_log/discoverybench/<task_name>/run_YYYYMMDD_HHMMSS/stream.jsonl
 OpenCode backend files are isolated under:
 
 ```text
-dockerfiles/Dockerfile.opencode
 container/opencode/AGENTS.md
 opencode_skills/
 opencode_agents/

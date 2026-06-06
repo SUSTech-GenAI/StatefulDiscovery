@@ -50,9 +50,8 @@ ANTHROPIC_MODEL=
 ## 数据准备+处理
 StatefulDiscovery在3个benchmark共40个数据集上进行评估。因为我们的目的是open-ended的发现，需要将benchmark的所有测试问题剔除，让agent接收数据集本身进行开放式探索。我们在 [DiscoveryBench](https://huggingface.co/datasets/allenai/discoverybench), [BLADE](https://github.com/behavioral-data/BLADE)以及[BixBench](https://huggingface.co/datasets/phylobio/BixBench-Verified-50) 进行预处理，以屏蔽特定的查询和问题。
 
-建议先下载处理DiscoveryBench进行测试。
+建议先下载处理DiscoveryBench进行测试。且可能需要huggingface镜像`export HF_ENDPOINT=https://hf-mirror.com`
 ```bash
-# export HF_ENDPOINT=https://hf-mirror.com
 # DiscoveryBench
 hf download allenai/discoverybench --repo-type dataset --include 'discoverybench/real/test/**' --local-dir .
 mv ./discoverybench/real/test/* ./discoverybench/
@@ -94,6 +93,24 @@ datasets/xxx/<任务名>/
 `task_packet.json` 只包含 open-ended 运行需要的信息，包括 `task_id`、
 `dataset_paths`、带列说明的 `column_metadata` 和 `budget`。其中 `task_id`
 直接使用任务目录名。脚本不会把原始Benchmarks等含有的queries、hypotheses 或答案写入任务目录。
+
+## 基础镜像配置
+由于我们是在沙盒（容器）里进行评估。为保证公平及可复现，需先拉取必要的镜像。我们基于futuehouse/bixbench的镜像来构建。但由于该开源镜像仅支持linux/arm64，我们对其进行改造以支持linux/amd64。
+
+### linux/arm64环境
+如果宿主机是arm64配置
+```bash
+docker pull futurehouse/bixbench:aviary-notebook-env
+# 如果需要镜像站的话，推荐 https://1ms.run/
+# docker pull docker.1ms.run/futurehouse/bixbench:aviary-notebook-env
+```
+### linux/amd64环境
+如果宿主机是amd64配置
+```bash
+# docker pull xxx
+# 也可以从 dockerfile 直接构建
+docker build --platform linux/amd64 -t futurehouse/bixbench:aviary-notebook-env -f dockerfiles/Dockerfile.bixbench-base.amd64 .
+```
 
 ## 运行任务（Claude Code）
 我们提供不同coding agent的支持，首先是Claude Code CLI，版本固定为 `2.1.76`。
