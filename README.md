@@ -143,6 +143,7 @@ We support multiple coding-agent backends. The primary backend is Claude Code CL
 The related files are isolated under:
 
 ```text
+dockerfiles/Dockerfile.claude
 container/claude/CLAUDE.md
 claude_skills/
 scripts/run_claude_task.sh
@@ -179,6 +180,7 @@ discovery_log/discoverybench/<task_name>/run_YYYYMMDD_HHMMSS/stream.jsonl
 OpenCode backend files are isolated under:
 
 ```text
+dockerfiles/Dockerfile.opencode
 container/opencode/AGENTS.md
 opencode_skills/
 opencode_agents/
