@@ -69,6 +69,16 @@ if [ -z "$DATA_PATH" ]; then
     exit 1
 fi
 
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "Error: python3 not found. Install Python 3 and ensure it is on PATH." >&2
+    exit 1
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "Error: docker not found. Install and start Docker Desktop (macOS/Windows) or Docker Engine (Linux)." >&2
+    exit 1
+fi
+
 DATA_PATH="$(cd "$(dirname "$DATA_PATH")" && pwd)/$(basename "$DATA_PATH")"
 
 if [ ! -f "${DATA_PATH}/task_packet.json" ]; then
@@ -113,9 +123,19 @@ fi
 
 copy_task_files() {
     local src="$1" dest="$2"
+    local rel_path src_file dest_file
     cp "${src}/task_packet.json" "$dest/"
 
-    mapfile -t dataset_paths < <(
+    while IFS= read -r rel_path; do
+        src_file="${src}/${rel_path}"
+        dest_file="${dest}/${rel_path}"
+        if [ ! -f "$src_file" ]; then
+            echo "Error: dataset file listed in task_packet.json not found: ${src_file}" >&2
+            exit 1
+        fi
+        mkdir -p "$(dirname "$dest_file")"
+        cp -L "$src_file" "$dest_file"
+    done < <(
         python3 - "$src/task_packet.json" <<'PY'
 import json
 import sys
@@ -127,17 +147,6 @@ for path in packet.get("dataset_paths", []):
     print(path)
 PY
     )
-
-    for rel_path in "${dataset_paths[@]}"; do
-        src_file="${src}/${rel_path}"
-        dest_file="${dest}/${rel_path}"
-        if [ ! -f "$src_file" ]; then
-            echo "Error: dataset file listed in task_packet.json not found: ${src_file}" >&2
-            exit 1
-        fi
-        mkdir -p "$(dirname "$dest_file")"
-        cp -L "$src_file" "$dest_file"
-    done
 }
 
 RUN_DIR="${OUTPUT_PATH}/run_${TIMESTAMP}"
