@@ -47,9 +47,9 @@ cp config.env.example config.env
 Then fill in the model configuration used by the agent inside the container:
 
 ```bash
-ANTHROPIC_API_KEY=
-ANTHROPIC_BASE_URL=
-ANTHROPIC_MODEL=
+ANTHROPIC_API_KEY=""
+ANTHROPIC_BASE_URL="https://dashscope.aliyuncs.com/apps/anthropic"
+ANTHROPIC_MODEL="qwen3.5-plus"
 ```
 
 `config.env` is not committed to Git. The run scripts read this file and pass the configuration into the container.

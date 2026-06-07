@@ -46,9 +46,9 @@ cp config.env.example config.env
 然后在 `config.env` 中填写运行容器内 agent 使用的模型配置：
 
 ```bash
-ANTHROPIC_API_KEY=
-ANTHROPIC_BASE_URL=
-ANTHROPIC_MODEL=
+ANTHROPIC_API_KEY=""
+ANTHROPIC_BASE_URL="https://dashscope.aliyuncs.com/apps/anthropic"
+ANTHROPIC_MODEL="qwen3.5-plus"
 ```
 
 `config.env` 不会提交到 Git；运行脚本会读取这个文件并将配置传入容器。
