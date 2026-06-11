@@ -1,5 +1,5 @@
 # StatefulDiscovery
-[![ArXiv: coming soon](https://img.shields.io/badge/ArXiv-coming_soon-b31b1b.svg)](imgs/paper.pdf) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![arXiv: 2606.11851](https://img.shields.io/badge/arXiv-2606.11851-b31b1b.svg)](https://arxiv.org/abs/2606.11851) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [English](README.md) | 中文
 
