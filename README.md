@@ -223,3 +223,19 @@ The following figure visualizes an example run on `bix-52` from BixBench.
 ## License
 
 This repository is released under the MIT License. Datasets used by the benchmark preparation scripts are subject to their original licenses.
+
+## Citation
+
+If you find this work useful, please cite:
+
+```bibtex
+@misc{chen2026statefuldiscoveryevidencecalibratedclaimformation,
+      title={StatefulDiscovery: Evidence-Calibrated Claim Formation in Open-Ended Scientific Discovery},
+      author={Jiayao Chen and Shi Liu and Linyi Yang},
+      year={2026},
+      eprint={2606.11851},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2606.11851},
+}
+```

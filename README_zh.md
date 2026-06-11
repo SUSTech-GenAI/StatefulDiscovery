@@ -205,3 +205,19 @@ opencode_agents/experiment-runner.md
 ## License
 
 This repository is released under the MIT License. Datasets used by the benchmark preparation scripts are subject to their original licenses.
+
+## Citation
+
+如果您觉得本工作有帮助，请引用：
+
+```bibtex
+@misc{chen2026statefuldiscoveryevidencecalibratedclaimformation,
+      title={StatefulDiscovery: Evidence-Calibrated Claim Formation in Open-Ended Scientific Discovery},
+      author={Jiayao Chen and Shi Liu and Linyi Yang},
+      year={2026},
+      eprint={2606.11851},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2606.11851},
+}
+```
