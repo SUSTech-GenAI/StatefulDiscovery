@@ -12,8 +12,6 @@ StatefulDiscovery's main open-ended evaluation uses **40 datasets: 21 from BixBe
 
 Prepared tasks are written to `datasets/<benchmark>/<task_id>/`, where `<benchmark>` is `bixbench`, `blade`, or `discoverybench`. For example, `bix-52` becomes `datasets/bixbench/bix-52/`.
 
-The paper's selection excludes `bix-11`, `caschools`, and `teachingratings`, even though the preparation scripts can process them. Legacy experiment directories use suffixes such as `bix-52_no-hint` or `reading_open-ended`; the corresponding prepared task IDs are `bix-52` and `reading`.
-
 ## Data preparation
 
 Download the original benchmark files using the commands in the main [README](../README.md#data-preparation-and-processing). Then run these commands from the repository root to prepare the paper's selection:
