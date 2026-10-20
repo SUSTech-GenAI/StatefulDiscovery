@@ -56,7 +56,9 @@ ANTHROPIC_MODEL="qwen3.5-plus"
 
 ## Data Preparation and Processing
 
-StatefulDiscovery is evaluated on 40 datasets across 3 benchmarks. Because our goal is open-ended discovery, benchmark-specific test questions must be removed so that the agent receives only the dataset itself and performs open-ended exploration. We preprocess [DiscoveryBench](https://huggingface.co/datasets/allenai/discoverybench), [BLADE](https://github.com/behavioral-data/BLADE), and [BixBench](https://huggingface.co/datasets/phylobio/BixBench-Verified-50) to hide task-specific queries and answers.
+StatefulDiscovery is evaluated on **40 datasets: 21 from BixBench, 13 from BLADE, and 6 from DiscoveryBench**. The exact task IDs and output paths are listed in [datasets/README.md](datasets/README.md), with a machine-readable selection in [datasets/paper_tasks.json](datasets/paper_tasks.json). Because our goal is open-ended discovery, benchmark-specific test questions must be removed so that the agent receives only the dataset itself and performs open-ended exploration. We preprocess [DiscoveryBench](https://huggingface.co/datasets/allenai/discoverybench), [BLADE](https://github.com/behavioral-data/BLADE), and [BixBench](https://huggingface.co/datasets/phylobio/BixBench-Verified-50) to hide task-specific queries and answers.
+
+The commands below use `--task-list datasets/paper_tasks.json` to prepare the paper's selection. Omit this option to prepare all available tasks from a source benchmark. Use a fresh output directory for the exact 40-task set; the scripts do not remove previously prepared extra tasks.
 
 We recommend starting with DiscoveryBench for a quick test. If access to
 Hugging Face is slow or unavailable, you may need to configure a mirror first:
@@ -72,7 +74,7 @@ mv ./discoverybench/real/test/* ./discoverybench/
 rmdir ./discoverybench/real/test ./discoverybench/real
 rm -rf ./.cache
 # Convert to open-ended tasks under ./datasets/discoverybench/<task>/
-python3 scripts/prepare_discoverybench_tasks.py
+python3 scripts/prepare_discoverybench_tasks.py --task-list datasets/paper_tasks.json
 rm -rf ./discoverybench
 ```
 
@@ -84,7 +86,7 @@ mkdir -p ./blade
 cp -R ./blade_repo/blade_bench/datasets/* ./blade/
 rm -rf ./blade_repo
 # Convert to open-ended tasks under ./datasets/blade/<task>/
-python3 scripts/prepare_blade_tasks.py
+python3 scripts/prepare_blade_tasks.py --task-list datasets/paper_tasks.json
 rm -rf ./blade
 ```
 
@@ -94,7 +96,7 @@ mkdir -p ./bixbench/verified50 ./bixbench/full
 hf download phylobio/BixBench-Verified-50 --repo-type dataset --local-dir ./bixbench/verified50
 hf download futurehouse/BixBench BixBench.jsonl --repo-type dataset --local-dir ./bixbench/full
 # Convert to open-ended tasks under ./datasets/bixbench/<task>/
-python3 scripts/prepare_bixbench_tasks.py
+python3 scripts/prepare_bixbench_tasks.py --task-list datasets/paper_tasks.json
 rm -rf ./bixbench
 ```
 

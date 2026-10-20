@@ -28,6 +28,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from task_selection import select_task_names
+
 
 DEFAULT_BUDGET = {
     "max_experiments": 40,
@@ -50,6 +52,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("datasets") / "blade",
         help="Output task directory. Default: ./datasets/blade",
+    )
+    parser.add_argument(
+        "--task-list",
+        type=Path,
+        help="JSON task manifest; select its blade IDs. Default: prepare all available tasks.",
     )
     parser.add_argument(
         "--max-experiments",
@@ -275,6 +282,13 @@ def main() -> int:
     if not task_dirs:
         print(f"error: no task directories found in {source_dir}", file=sys.stderr)
         return 1
+
+    try:
+        selected = set(select_task_names((path.name for path in task_dirs), args.task_list, "blade"))
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    task_dirs = [path for path in task_dirs if path.name in selected]
 
     prepared = 0
     for task_dir in task_dirs:

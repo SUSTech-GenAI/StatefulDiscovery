@@ -1,0 +1,48 @@
+{
+  "bixbench": [
+    "bix-6",
+    "bix-14",
+    "bix-16",
+    "bix-18",
+    "bix-22",
+    "bix-24",
+    "bix-26",
+    "bix-27",
+    "bix-30",
+    "bix-31",
+    "bix-32",
+    "bix-37",
+    "bix-41",
+    "bix-43",
+    "bix-46",
+    "bix-49",
+    "bix-51",
+    "bix-52",
+    "bix-53",
+    "bix-55",
+    "bix-61"
+  ],
+  "blade": [
+    "affairs",
+    "amtl",
+    "boxes",
+    "conversation",
+    "crofoot",
+    "fertility",
+    "fish",
+    "hurricane",
+    "mortgage",
+    "panda_nuts",
+    "reading",
+    "soccer",
+    "toy"
+  ],
+  "discoverybench": [
+    "archaeology",
+    "nls_incarceration",
+    "nls_ses",
+    "requirements_engineering_for_ML_enabled_systems",
+    "worldbank_education_gdp",
+    "worldbank_education_gdp_indicators"
+  ]
+}

@@ -33,6 +33,8 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from task_selection import select_task_names
+
 
 DEFAULT_BUDGET = {
     "max_experiments": 40,
@@ -64,6 +66,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("datasets") / "bixbench",
         help="Output task directory. Default: ./datasets/bixbench",
+    )
+    parser.add_argument(
+        "--task-list",
+        type=Path,
+        help="JSON task manifest; select its bixbench IDs. Default: prepare all available tasks.",
     )
     parser.add_argument(
         "--max-experiments",
@@ -387,8 +394,14 @@ def main() -> int:
             )
 
     grouped = group_capsules(capsules)
+    try:
+        selected = select_task_names(grouped, args.task_list, "bixbench")
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
     prepared = 0
-    for task_name, task_capsules in grouped.items():
+    for task_name in selected:
+        task_capsules = grouped[task_name]
         try:
             ok = prepare_task(
                 task_name,
